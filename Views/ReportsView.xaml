@@ -1,0 +1,210 @@
+<UserControl x:Class="CafePOS.Views.ReportsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             FlowDirection="RightToLeft"
+             FontFamily="{StaticResource AppFont}">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header + Filters -->
+        <Border Grid.Row="0" Background="White" CornerRadius="12" Padding="20" Margin="0,0,0,15">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.06"/>
+            </Border.Effect>
+            <DockPanel>
+                <TextBlock Text="التقارير" FontSize="22" FontWeight="Bold"
+                           Foreground="{StaticResource PrimaryBrownBrush}"
+                           VerticalAlignment="Center"/>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left"
+                            VerticalAlignment="Center">
+                    <TextBlock Text="تاريخ التقرير:" FontSize="14" FontWeight="SemiBold"
+                               Foreground="#555" VerticalAlignment="Center" Margin="10,0,5,0"/>
+                    <DatePicker x:Name="ReportDatePicker" Width="130" Height="36" VerticalAlignment="Center" Margin="0,0,15,0"/>
+
+                    <Button x:Name="BtnDailyReport" Content="تقرير يومي"
+                            Style="{StaticResource AccentButton}" Margin="5,0"
+                            Click="DailyReport_Click"/>
+                    <Button x:Name="BtnMonthlyReport" Content="تقرير شهري"
+                            Style="{StaticResource AccentButton}" Margin="5,0"
+                            Click="MonthlyReport_Click"/>
+                    <Button x:Name="BtnTopProducts" Content="الأكثر مبيعاً"
+                            Style="{StaticResource AccentButton}" Margin="5,0"
+                            Click="TopProducts_Click"/>
+                    <Button x:Name="BtnShiftClose" Content="إغلاق الشفت"
+                            Style="{StaticResource PrimaryButton}" Margin="5,0"
+                            FontSize="14" Padding="16,8"
+                            Click="ShiftClose_Click"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Report Content -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Sales Summary Card -->
+            <Border Grid.Column="0" Background="White" CornerRadius="16"
+                    Padding="25" Margin="0,0,10,0"
+                    x:Name="SalesReportPanel">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.08"/>
+                </Border.Effect>
+                <StackPanel>
+                    <TextBlock x:Name="ReportTitle" Text="تقرير مبيعات اليوم"
+                               FontSize="18" FontWeight="Bold"
+                               Foreground="{StaticResource PrimaryBrownBrush}"
+                               Margin="0,0,0,20"/>
+
+                    <!-- Metric Cards -->
+                    <Border Background="#E8F5E9" CornerRadius="10" Padding="15" Margin="0,0,0,10">
+                        <DockPanel>
+                            <TextBlock Text="إجمالي الإيرادات" FontSize="14" Foreground="#2E7D32"
+                                       VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TotalRevenueText" FontSize="22" FontWeight="Bold"
+                                       Foreground="#2E7D32" HorizontalAlignment="Left"
+                                       FlowDirection="LeftToRight"/>
+                        </DockPanel>
+                    </Border>
+
+                    <Border Background="#FFF3E0" CornerRadius="10" Padding="15" Margin="0,0,0,10">
+                        <DockPanel>
+                            <TextBlock Text="إجمالي الخصومات" FontSize="14" Foreground="#E65100"
+                                       VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TotalDiscountsText" FontSize="18" FontWeight="Bold"
+                                       Foreground="#E65100" HorizontalAlignment="Left"
+                                       FlowDirection="LeftToRight"/>
+                        </DockPanel>
+                    </Border>
+
+                    <Border Background="#FFEBEE" CornerRadius="10" Padding="15" Margin="0,0,0,10">
+                        <DockPanel>
+                            <TextBlock Text="إجمالي المرتجعات" FontSize="14" Foreground="#C62828"
+                                       VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TotalReturnsText" FontSize="18" FontWeight="Bold"
+                                       Foreground="#C62828" HorizontalAlignment="Left"
+                                       FlowDirection="LeftToRight"/>
+                        </DockPanel>
+                    </Border>
+
+                    <Border Height="2" Background="#EEE" Margin="0,5"/>
+
+                    <Border Background="{StaticResource BackgroundBeigeBrush}" CornerRadius="10"
+                            Padding="15" Margin="0,10,0,10">
+                        <DockPanel>
+                            <TextBlock Text="صافي التحصيل" FontSize="16" FontWeight="Bold"
+                                       Foreground="{StaticResource PrimaryBrownBrush}"
+                                       VerticalAlignment="Center"/>
+                            <TextBlock x:Name="NetCashText" FontSize="24" FontWeight="Bold"
+                                       Foreground="{StaticResource PrimaryBrownBrush}"
+                                       HorizontalAlignment="Left"
+                                       FlowDirection="LeftToRight"/>
+                        </DockPanel>
+                    </Border>
+
+                    <TextBlock x:Name="OrderCountText" FontSize="14" Foreground="#888"
+                               Margin="0,5,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Top Products / Shift Panel -->
+            <Border Grid.Column="1" Background="White" CornerRadius="16"
+                    Padding="25" Margin="10,0,0,0">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.08"/>
+                </Border.Effect>
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" x:Name="RightPanelTitle"
+                               Text="المنتجات الأكثر مبيعاً"
+                               FontSize="18" FontWeight="Bold"
+                               Foreground="{StaticResource PrimaryBrownBrush}"
+                               Margin="0,0,0,15"/>
+
+                    <!-- Top Products List -->
+                    <ListView x:Name="TopProductsList"
+                              BorderThickness="0" Background="Transparent"
+                              ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Border Padding="12,10" Margin="0,3" Background="#FAFAFA" CornerRadius="8">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="30"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock Grid.Column="0" Text="{Binding Rank}"
+                                                   FontSize="16" FontWeight="Bold"
+                                                   Foreground="{StaticResource AccentCopperBrush}"
+                                                   VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding Name}"
+                                                   FontSize="14" FontWeight="SemiBold"
+                                                   VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" FontSize="13" Foreground="#888"
+                                                   VerticalAlignment="Center" Margin="10,0"
+                                                   Text="{Binding TotalQuantity, StringFormat='×{0}'}"/>
+                                        <TextBlock Grid.Column="3" FontSize="14" FontWeight="Bold"
+                                                   Foreground="{StaticResource PrimaryBrownBrush}"
+                                                   VerticalAlignment="Center"
+                                                   FlowDirection="LeftToRight"
+                                                   Text="{Binding TotalRevenue, StringFormat='{}{0:F2} ر.ي'}"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListViewItem">
+                                            <ContentPresenter/>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                    </ListView>
+
+                    <!-- Shift Close Panel (hidden by default) -->
+                    <StackPanel x:Name="ShiftClosePanel" Visibility="Collapsed">
+                        <TextBlock Text="أدخل المبلغ الفعلي في الخزينة"
+                                   FontSize="14" Foreground="#555"
+                                   Margin="0,0,0,10"/>
+                        <TextBox x:Name="ActualCashBox"
+                                 Style="{StaticResource RoundedTextBox}"
+                                 FontSize="18" FlowDirection="LeftToRight"
+                                 Margin="0,0,0,15"/>
+                        <Button Content="إغلاق الشفت وحساب الفارق"
+                                Style="{StaticResource PrimaryButton}"
+                                Click="ExecuteShiftClose_Click"
+                                FontSize="15"/>
+
+                        <!-- Shift Result -->
+                        <Border x:Name="ShiftResultPanel" Visibility="Collapsed"
+                                Background="#FFF8E1" CornerRadius="10" Padding="15" Margin="0,15,0,0">
+                            <StackPanel>
+                                <TextBlock Text="نتيجة إغلاق الشفت" FontSize="16" FontWeight="Bold"
+                                           Foreground="{StaticResource PrimaryBrownBrush}" Margin="0,0,0,10"/>
+                                <TextBlock x:Name="ShiftExpectedText" FontSize="14"/>
+                                <TextBlock x:Name="ShiftActualText" FontSize="14" Margin="0,3,0,0"/>
+                                <TextBlock x:Name="ShiftDiffText" FontSize="16" FontWeight="Bold"
+                                           Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

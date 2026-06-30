@@ -1,0 +1,76 @@
+<Window x:Class="CafePOS.Views.CloseShiftWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="إغلاق الشفت"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Width="440" Height="400"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        FlowDirection="RightToLeft"
+        ShowInTaskbar="False">
+
+    <Border CornerRadius="16" Background="{StaticResource BackgroundBeigeBrush}"
+            Margin="15" Padding="25">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="25" ShadowDepth="4" Opacity="0.3" Color="#3E2723"/>
+        </Border.Effect>
+        <StackPanel>
+            <!-- Header -->
+            <TextBlock Text="🔒 إغلاق الشفت الحالي" FontSize="18" FontWeight="Bold"
+                       Foreground="{StaticResource PrimaryBrownBrush}"
+                       FontFamily="{StaticResource AppFont}"
+                       HorizontalAlignment="Center" Margin="0,0,0,20"/>
+
+            <!-- Info Panel -->
+            <Border Background="White" CornerRadius="10" Padding="15" Margin="0,0,0,20">
+                <StackPanel>
+                    <DockPanel Margin="0,0,0,6">
+                        <TextBlock Text="الكاشير:" FontSize="13" Foreground="#666"/>
+                        <TextBlock x:Name="CashierText" FontSize="13" FontWeight="SemiBold" Foreground="#333" HorizontalAlignment="Left"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,0,0,6">
+                        <TextBlock Text="بداية الشفت:" FontSize="13" Foreground="#666"/>
+                        <TextBlock x:Name="StartTimeText" FontSize="13" Foreground="#333" HorizontalAlignment="Left"/>
+                    </DockPanel>
+                    <Border Height="1" Background="#EEE" Margin="0,5"/>
+                    <DockPanel>
+                        <TextBlock Text="إجمالي مبيعاتك:" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrownBrush}"/>
+                        <TextBlock x:Name="TotalSalesText" FontSize="18" FontWeight="Bold" Foreground="{StaticResource AccentCopperBrush}" HorizontalAlignment="Left"/>
+                    </DockPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Input Field -->
+            <TextBlock Text="أدخل المبلغ الفعلي الموجود في الخزينة (ر.ي):" FontSize="14" FontWeight="SemiBold"
+                       Foreground="#555" FontFamily="{StaticResource AppFont}" Margin="5,0,0,6"/>
+            <TextBox x:Name="ActualCashBox" Style="{StaticResource RoundedTextBox}"
+                     FontSize="18" FlowDirection="LeftToRight" Margin="0,0,0,25" Height="45"
+                     VerticalContentAlignment="Center" HorizontalContentAlignment="Center" FontWeight="Bold"/>
+
+            <!-- Buttons -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                <Button Content="إلغاء" Padding="20,8"
+                        Click="Cancel_Click" Margin="8,0,0,0"
+                        Cursor="Hand" FontFamily="{StaticResource AppFont}">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="bg" Background="#EEE" CornerRadius="8"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bg" Property="Background" Value="#DDD"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+                <Button Content="تأكيد وإغلاق الشفت" Style="{StaticResource PrimaryButton}"
+                        Padding="25,8" FontSize="14" Click="Confirm_Click"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

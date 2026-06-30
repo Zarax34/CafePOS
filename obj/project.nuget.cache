@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "dgSpecHash": "psLfeGUXdjs=",
+  "success": true,
+  "projectFilePath": "E:\\my-projects\\cafe-system\\CafePOS.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\yt\\.nuget\\packages\\bcrypt.net-next\\4.2.1\\bcrypt.net-next.4.2.1.nupkg.sha512",
+    "C:\\Users\\yt\\.nuget\\packages\\microsoft.data.sqlite\\8.0.28\\microsoft.data.sqlite.8.0.28.nupkg.sha512",
+    "C:\\Users\\yt\\.nuget\\packages\\microsoft.data.sqlite.core\\8.0.28\\microsoft.data.sqlite.core.8.0.28.nupkg.sha512",
+    "C:\\Users\\yt\\.nuget\\packages\\sqlitepclraw.bundle_e_sqlite3\\2.1.6\\sqlitepclraw.bundle_e_sqlite3.2.1.6.nupkg.sha512",
+    "C:\\Users\\yt\\.nuget\\packages\\sqlitepclraw.core\\2.1.6\\sqlitepclraw.core.2.1.6.nupkg.sha512",
+    "C:\\Users\\yt\\.nuget\\packages\\sqlitepclraw.lib.e_sqlite3\\2.1.6\\sqlitepclraw.lib.e_sqlite3.2.1.6.nupkg.sha512",
+    "C:\\Users\\yt\\.nuget\\packages\\sqlitepclraw.provider.e_sqlite3\\2.1.6\\sqlitepclraw.provider.e_sqlite3.2.1.6.nupkg.sha512",
+    "C:\\Users\\yt\\.nuget\\packages\\system.codedom\\10.0.9\\system.codedom.10.0.9.nupkg.sha512",
+    "C:\\Users\\yt\\.nuget\\packages\\system.management\\10.0.9\\system.management.10.0.9.nupkg.sha512",
+    "C:\\Users\\yt\\.nuget\\packages\\system.memory\\4.5.3\\system.memory.4.5.3.nupkg.sha512"
+  ],
+  "logs": []
+}
