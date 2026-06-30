@@ -47,17 +47,20 @@
                                  FontSize="14" Margin="0,0,0,12"
                                  TextChanged="ReceiptPreview_Changed"/>
 
-                        <TextBlock Text="شعار الكافيه (PNG 200×200)" FontSize="14" FontWeight="SemiBold"
+                        <TextBlock Text="شعار الكافيه (PNG)" FontSize="14" FontWeight="SemiBold"
                                    Foreground="#555" Margin="0,0,0,6"/>
                         <DockPanel Margin="0,0,0,12">
                             <Button DockPanel.Dock="Left" Content="اختيار صورة"
                                     Style="{StaticResource AccentButton}"
                                     Click="SelectLogo_Click"
                                     Margin="8,0,0,0" Padding="15,8"/>
-                            <TextBlock x:Name="LogoPathText" FontSize="12" Foreground="#888"
-                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
-                                       FlowDirection="LeftToRight"/>
+                            <Border DockPanel.Dock="Left" Width="80" Height="80" CornerRadius="6"
+                                    BorderBrush="#DDD" BorderThickness="1" Margin="0,0,8,0">
+                                <Image x:Name="LogoPreviewImg" MaxWidth="72" MaxHeight="72"
+                                       Stretch="Uniform"/>
+                            </Border>
                         </DockPanel>
+                        <Border Height="1" Background="#EEE" Margin="0,0,0,12"/>
 
                         <TextBlock Text="اسم الطابعة الحرارية" FontSize="14" FontWeight="SemiBold"
                                    Foreground="#555" Margin="0,0,0,6"/>
@@ -125,6 +128,7 @@
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
                                                 <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0">
                                                 <TextBlock Text="{Binding Username}" FontSize="14"
@@ -157,6 +161,54 @@
                                                     </Style>
                                                 </TextBlock.Style>
                                             </TextBlock>
+                                            <Button Grid.Column="2" Content="تعديل"
+                                                    FontSize="12" Padding="8,4" Margin="4,0"
+                                                    Cursor="Hand"
+                                                    Tag="{Binding}"
+                                                    Click="EditUser_Click">
+                                                <Button.Template>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border x:Name="bg" Background="#D7CCC8" CornerRadius="4"
+                                                                Padding="{TemplateBinding Padding}">
+                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter TargetName="bg" Property="Background" Value="#BCAAA4"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Button.Template>
+                                            </Button>
+                                            <Button Grid.Column="3" FontSize="12" Padding="8,4" Margin="4,0"
+                                                    Cursor="Hand" Tag="{Binding}"
+                                                    Click="ToggleUserActive_Click">
+                                                <Button.Template>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border x:Name="bg" CornerRadius="4"
+                                                                Padding="{TemplateBinding Padding}">
+                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter TargetName="bg" Property="Background" Value="#E0E0E0"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Button.Template>
+                                                <Button.Style>
+                                                    <Style TargetType="Button">
+                                                        <Setter Property="Content" Value="تعطيل"/>
+                                                        <Setter Property="Foreground" Value="#C62828"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsActive}" Value="False">
+                                                                <Setter Property="Content" Value="تفعيل"/>
+                                                                <Setter Property="Foreground" Value="#2E7D32"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
@@ -213,15 +265,16 @@
         </ScrollViewer>
 
         <!-- RIGHT COLUMN: Live Receipt Preview -->
-        <Border Grid.Column="1" Background="White" CornerRadius="16"
-                Padding="15" VerticalAlignment="Top">
-            <Border.Effect>
-                <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.08"/>
-            </Border.Effect>
-            <StackPanel>
-                <TextBlock Text="معاينة الفاتورة الحرارية" FontSize="15" FontWeight="Bold"
-                           Foreground="{StaticResource PrimaryBrownBrush}"
-                           Margin="0,0,0,10" HorizontalAlignment="Center"/>
+        <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+            <Border Background="White" CornerRadius="16"
+                    Padding="15" VerticalAlignment="Top">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.08"/>
+                </Border.Effect>
+                <StackPanel>
+                    <TextBlock Text="معاينة الفاتورة الحرارية" FontSize="15" FontWeight="Bold"
+                               Foreground="{StaticResource PrimaryBrownBrush}"
+                               Margin="0,0,0,10" HorizontalAlignment="Center"/>
 
                 <!-- Thermal Receipt Mockup -->
                 <Border Background="#FEFEFE" CornerRadius="4" Padding="15,20"
@@ -238,6 +291,11 @@
                     </Border.Resources>
 
                     <StackPanel>
+                        <!-- Logo Preview -->
+                        <Image x:Name="PreviewLogoImg" MaxWidth="160" MaxHeight="100"
+                               Stretch="Uniform" HorizontalAlignment="Center"
+                               Margin="0,0,0,8"/>
+
                         <!-- Cafe Name -->
                         <TextBlock x:Name="PreviewCafeName" Text="كافيه"
                                    FontSize="18" FontWeight="Bold"
@@ -254,22 +312,71 @@
                         <Border Style="{StaticResource DashedSep}"/>
 
                         <!-- Invoice info -->
-                        <TextBlock Text="فاتورة رقم: INV-20260630-001"
-                                   FontSize="11" Foreground="#555"
-                                   HorizontalAlignment="Center"
-                                   FlowDirection="LeftToRight"
-                                   FontFamily="Courier New"/>
-                        <TextBlock Text="2026-06-30 12:30"
-                                   FontSize="10" Foreground="#888"
-                                   HorizontalAlignment="Center"
-                                   FlowDirection="LeftToRight"
-                                   FontFamily="Courier New"/>
-                        <TextBlock Text="الكاشير: admin - المدير العام"
-                                   FontSize="11" Foreground="#555"
-                                   HorizontalAlignment="Center"
-                                   FlowDirection="LeftToRight"
-                                   FontFamily="Courier New"
-                                   Margin="0,2,0,0"/>
+                        <Grid Margin="0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="رقم الفاتورة:"
+                                       FontSize="11" Foreground="#555"
+                                       FontFamily="Courier New" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="INV-20260630-001"
+                                       FontSize="11" Foreground="#555"
+                                       FlowDirection="LeftToRight" HorizontalAlignment="Left"
+                                       FontFamily="Courier New" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Grid Margin="0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="رقم الطلب:"
+                                       FontSize="11" Foreground="#555"
+                                       FontFamily="Courier New" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="001"
+                                       FontSize="11" Foreground="#555"
+                                       FlowDirection="LeftToRight" HorizontalAlignment="Left"
+                                       FontFamily="Courier New" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Grid Margin="0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="العميل:"
+                                       FontSize="11" Foreground="#555"
+                                       FontFamily="Courier New" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="أحمد محمد"
+                                       FontSize="11" Foreground="#555"
+                                       HorizontalAlignment="Left"
+                                       FontFamily="Courier New" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Grid Margin="0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="التاريخ:"
+                                       FontSize="11" Foreground="#555"
+                                       FontFamily="Courier New" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="2026-06-30 12:30"
+                                       FontSize="11" Foreground="#555"
+                                       FlowDirection="LeftToRight" HorizontalAlignment="Left"
+                                       FontFamily="Courier New" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Grid Margin="0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="الكاشير:"
+                                       FontSize="11" Foreground="#555"
+                                       FontFamily="Courier New" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="admin - المدير العام"
+                                       FontSize="11" Foreground="#555"
+                                       HorizontalAlignment="Left"
+                                       FontFamily="Courier New" VerticalAlignment="Center"/>
+                        </Grid>
 
                         <Border Style="{StaticResource DashedSep}"/>
 
@@ -300,14 +407,19 @@
                         <Border Style="{StaticResource DashedSep}"/>
 
                         <!-- Total -->
-                        <DockPanel>
-                            <TextBlock Text="الإجمالي" FontSize="14" FontWeight="Bold"
+                        <Grid Margin="0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="الإجمالي:"
+                                       FontSize="14" FontWeight="Bold"
                                        FontFamily="Courier New"/>
-                            <TextBlock Text="850.00 ر.ي" FontSize="14" FontWeight="Bold"
-                                       HorizontalAlignment="Left"
-                                       FlowDirection="LeftToRight"
+                            <TextBlock Grid.Column="1" Text="850.00 ر.ي"
+                                       FontSize="14" FontWeight="Bold"
+                                       FlowDirection="LeftToRight" HorizontalAlignment="Left"
                                        FontFamily="Courier New"/>
-                        </DockPanel>
+                        </Grid>
 
                         <Border Style="{StaticResource DashedSep}"/>
 
@@ -320,5 +432,6 @@
                 </Border>
             </StackPanel>
         </Border>
+    </ScrollViewer>
     </Grid>
 </UserControl>

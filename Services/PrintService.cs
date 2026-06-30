@@ -3,6 +3,9 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Printing;
 using System.Linq;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using CafePOS.Models;
 using CafePOS.Services;
 
@@ -102,6 +105,69 @@ public static class PrintService
     }
 
     /// <summary>
+    /// Prints the cafe logo from Data/logo.png as a raster bit image (GS v 0).
+    /// Converts the image to 1bpp monochrome and scales it for thermal receipt width.
+    /// </summary>
+    private static void PrintLogo(MemoryStream ms)
+    {
+        var logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "logo.png");
+        if (!File.Exists(logoPath)) return;
+
+        try
+        {
+            using var bmp = new Bitmap(logoPath);
+
+            const int targetWidth = 384;
+            const int maxHeight = 120;
+
+            double scale = Math.Min((double)targetWidth / bmp.Width, (double)maxHeight / bmp.Height);
+            int w = Math.Max(1, (int)(bmp.Width * scale));
+            int h = Math.Max(1, (int)(bmp.Height * scale));
+            w = (w + 7) & ~7; // must be multiple of 8 for GS v 0
+
+            using var resized = new Bitmap(w, h);
+            using (var g = Graphics.FromImage(resized))
+            {
+                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                g.DrawImage(bmp, 0, 0, w, h);
+            }
+
+            int widthBytes = w / 8;
+            byte[] imageData = new byte[widthBytes * h];
+
+            for (int y = 0; y < h; y++)
+            {
+                for (int x = 0; x < w; x++)
+                {
+                    var px = resized.GetPixel(x, y);
+                    int gray = (px.R * 77 + px.G * 150 + px.B * 29) >> 8;
+
+                    if (gray < 128)
+                    {
+                        int bi = y * widthBytes + (x >> 3);
+                        imageData[bi] |= (byte)(0x80 >> (x & 7));
+                    }
+                }
+            }
+
+            // GS v 0 — Print raster bit image
+            ms.Write([
+                0x1D, 0x76, 0x30, 48,
+                (byte)(widthBytes & 0xFF),
+                (byte)((widthBytes >> 8) & 0xFF),
+                (byte)(h & 0xFF),
+                (byte)((h >> 8) & 0xFF)
+            ]);
+            ms.Write(imageData);
+            ms.Write([0x0A]);
+        }
+        catch
+        {
+            // Silently skip if logo can't be loaded
+        }
+    }
+
+    /// <summary>
     /// Prints an order receipt.
     /// </summary>
     public static bool PrintReceipt(Order order)
@@ -138,6 +204,9 @@ public static class PrintService
         // Initialize
         ms.Write(ESC_INIT);
         ms.Write(ESC_CODEPAGE);
+
+        // Logo (if configured)
+        PrintLogo(ms);
 
         // --- Header ---
         ms.Write(ESC_CENTER);

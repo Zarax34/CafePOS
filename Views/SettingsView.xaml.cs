@@ -5,15 +5,36 @@ using CafePOS.Models;
 using CafePOS.Services;
 using Microsoft.Win32;
 
+using System.Windows.Media.Imaging;
+
 namespace CafePOS.Views;
 
 public partial class SettingsView : UserControl
 {
+    private string? _logoPath;
+
     public SettingsView()
     {
         InitializeComponent();
         LoadSettings();
         LoadUsers();
+    }
+
+    private static BitmapImage? LoadImageSafe(string path)
+    {
+        if (!File.Exists(path)) return null;
+        try
+        {
+            var data = File.ReadAllBytes(path);
+            var img = new BitmapImage();
+            img.BeginInit();
+            img.CacheOption = BitmapCacheOption.OnLoad;
+            img.StreamSource = new MemoryStream(data);
+            img.EndInit();
+            img.Freeze();
+            return img;
+        }
+        catch { return null; }
     }
 
     private void LoadSettings()
@@ -23,12 +44,13 @@ public partial class SettingsView : UserControl
         CafeNameBox.Text = settings.GetValueOrDefault("cafe_name", "");
         PhoneBox.Text = settings.GetValueOrDefault("phone", "");
         FooterBox.Text = settings.GetValueOrDefault("footer", "");
-        LogoPathText.Text = settings.GetValueOrDefault("logo_path", "");
+        _logoPath = settings.GetValueOrDefault("logo_path", "");
         PrinterNameBox.Text = settings.GetValueOrDefault("printer_name", "");
         DiscountEnabledCheck.IsChecked = settings.GetValueOrDefault("discount_enabled", "0") == "1";
         DiscountPercentBox.Text = settings.GetValueOrDefault("discount_percent", "10");
 
-        // Initialize preview
+        // Load logo preview
+        LogoPreviewImg.Source = LoadImageSafe(_logoPath ?? string.Empty);
         UpdateReceiptPreview();
     }
 
@@ -46,13 +68,15 @@ public partial class SettingsView : UserControl
 
     private void UpdateReceiptPreview()
     {
-        if (PreviewCafeName == null) return; // not yet initialized
+        if (PreviewCafeName == null) return;
 
         PreviewCafeName.Text = string.IsNullOrWhiteSpace(CafeNameBox.Text) ? "كافيه" : CafeNameBox.Text;
         PreviewPhone.Text = PhoneBox.Text;
         PreviewPhone.Visibility = string.IsNullOrWhiteSpace(PhoneBox.Text)
             ? Visibility.Collapsed : Visibility.Visible;
         PreviewFooter.Text = string.IsNullOrWhiteSpace(FooterBox.Text) ? "شكراً لزيارتكم" : FooterBox.Text;
+
+        PreviewLogoImg.Source = LoadImageSafe(_logoPath ?? string.Empty);
     }
 
     // ======================== Logo ========================
@@ -72,8 +96,18 @@ public partial class SettingsView : UserControl
 
             try
             {
+                Directory.CreateDirectory(dataDir);
                 File.Copy(dialog.FileName, destPath, true);
-                LogoPathText.Text = destPath;
+                _logoPath = destPath;
+                SettingsService.SetSetting("logo_path", _logoPath);
+
+                var img = LoadImageSafe(_logoPath);
+                LogoPreviewImg.Source = img;
+                PreviewLogoImg.Source = img;
+
+                if (img == null)
+                    CustomMessageBox.Show("تم نسخ الملف لكن تعذر عرضه. تأكد من أن الملف بصيغة مدعومة (PNG/JPG).", "تنبيه",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             catch (Exception ex)
             {
@@ -92,6 +126,71 @@ public partial class SettingsView : UserControl
         if (addUserWin.ShowDialog() == true)
         {
             LoadUsers();
+        }
+    }
+
+    private void EditUser_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement element || element.Tag is not User user) return;
+
+        var editWin = new AddUserWindow(user);
+        editWin.Owner = Window.GetWindow(this);
+        if (editWin.ShowDialog() == true)
+        {
+            LoadUsers();
+        }
+    }
+
+    private void ToggleUserActive_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement element || element.Tag is not User user) return;
+
+        if (user.IsActive)
+        {
+            // Deactivate
+            var confirm = CustomMessageBox.Show(
+                $"هل تريد تعطيل حساب المستخدم '{user.Username}'?\n\nلن يتمكن من تسجيل الدخول بعد التعطيل.",
+                "تأكيد تعطيل الحساب",
+                MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+            if (confirm != MessageBoxResult.Yes) return;
+
+            try
+            {
+                var success = AuthService.DeleteUser(user.Id);
+                if (success)
+                {
+                    LoadUsers();
+                }
+            }
+            catch (InvalidOperationException ex)
+            {
+                CustomMessageBox.Show(ex.Message, "غير مسموح",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            catch (Exception ex)
+            {
+                CustomMessageBox.Show($"حدث خطأ: {ex.Message}", "خطأ",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        else
+        {
+            // Reactivate
+            var confirm = CustomMessageBox.Show(
+                $"هل تريد إعادة تفعيل حساب المستخدم '{user.Username}'?",
+                "تأكيد التفعيل",
+                MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+            if (confirm != MessageBoxResult.Yes) return;
+
+            var success = AuthService.ReactivateUser(user.Id);
+            if (success)
+            {
+                CustomMessageBox.Show($"تم إعادة تفعيل حساب '{user.Username}' بنجاح", "تم ✓",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                LoadUsers();
+            }
         }
     }
 
@@ -215,7 +314,6 @@ public partial class SettingsView : UserControl
             SettingsService.SetSetting("cafe_name", CafeNameBox.Text.Trim());
             SettingsService.SetSetting("phone", PhoneBox.Text.Trim());
             SettingsService.SetSetting("footer", FooterBox.Text.Trim());
-            SettingsService.SetSetting("logo_path", LogoPathText.Text.Trim());
             SettingsService.SetSetting("printer_name", PrinterNameBox.Text.Trim());
             SettingsService.SetSetting("discount_enabled", DiscountEnabledCheck.IsChecked == true ? "1" : "0");
 

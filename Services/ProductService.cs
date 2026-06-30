@@ -163,6 +163,18 @@ public static class ProductService
         return cmd.ExecuteNonQuery() > 0;
     }
 
+    public static bool DeleteProduct(int id)
+    {
+        using var connection = DatabaseContext.GetConnection();
+        connection.Open();
+
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = "DELETE FROM products WHERE Id = @id;";
+        cmd.Parameters.AddWithValue("@id", id);
+
+        return cmd.ExecuteNonQuery() > 0;
+    }
+
     public static bool ToggleProductActive(int id)
     {
         using var connection = DatabaseContext.GetConnection();

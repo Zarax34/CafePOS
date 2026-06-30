@@ -76,3 +76,16 @@ E:\my-projects\cafe-system\obj\Debug\net8.0-windows\refint\CafePOS.dll
 E:\my-projects\cafe-system\obj\Debug\net8.0-windows\CafePOS.pdb
 E:\my-projects\cafe-system\obj\Debug\net8.0-windows\CafePOS.genruntimeconfig.cache
 E:\my-projects\cafe-system\obj\Debug\net8.0-windows\ref\CafePOS.dll
+E:\my-projects\cafe-system\obj\Debug\net8.0-windows\CafePOS.sourcelink.json
+E:\my-projects\cafe-system\bin\Debug\net8.0-windows\Microsoft.Win32.SystemEvents.dll
+E:\my-projects\cafe-system\bin\Debug\net8.0-windows\System.Drawing.Common.dll
+E:\my-projects\cafe-system\bin\Debug\net8.0-windows\System.Private.Windows.Core.dll
+E:\my-projects\cafe-system\bin\Debug\net8.0-windows\runtimes\win\lib\net8.0\Microsoft.Win32.SystemEvents.dll
+E:\my-projects\cafe-system\bin\Debug\net8.0-windows\ClosedXML.dll
+E:\my-projects\cafe-system\bin\Debug\net8.0-windows\ClosedXML.Parser.dll
+E:\my-projects\cafe-system\bin\Debug\net8.0-windows\DocumentFormat.OpenXml.dll
+E:\my-projects\cafe-system\bin\Debug\net8.0-windows\DocumentFormat.OpenXml.Framework.dll
+E:\my-projects\cafe-system\bin\Debug\net8.0-windows\ExcelNumberFormat.dll
+E:\my-projects\cafe-system\bin\Debug\net8.0-windows\RBush.dll
+E:\my-projects\cafe-system\bin\Debug\net8.0-windows\SixLabors.Fonts.dll
+E:\my-projects\cafe-system\bin\Debug\net8.0-windows\System.IO.Packaging.dll

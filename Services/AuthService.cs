@@ -138,6 +138,64 @@ public static class AuthService
     }
 
     /// <summary>
+    /// Updates user info (username, full name, role, and optionally password).
+    /// </summary>
+    public static bool UpdateUser(int userId, string username, string fullName, string role, string? newPassword = null)
+    {
+        try
+        {
+            using var connection = DatabaseContext.GetConnection();
+            connection.Open();
+
+            if (!string.IsNullOrEmpty(newPassword))
+            {
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = @"
+                    UPDATE users SET Username = @username, FullName = @fullName, Role = @role, PasswordHash = @hash
+                    WHERE Id = @id;
+                ";
+                cmd.Parameters.AddWithValue("@hash", BCrypt.Net.BCrypt.HashPassword(newPassword));
+                cmd.Parameters.AddWithValue("@username", username);
+                cmd.Parameters.AddWithValue("@fullName", fullName);
+                cmd.Parameters.AddWithValue("@role", role);
+                cmd.Parameters.AddWithValue("@id", userId);
+                return cmd.ExecuteNonQuery() > 0;
+            }
+            else
+            {
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = @"
+                    UPDATE users SET Username = @username, FullName = @fullName, Role = @role
+                    WHERE Id = @id;
+                ";
+                cmd.Parameters.AddWithValue("@username", username);
+                cmd.Parameters.AddWithValue("@fullName", fullName);
+                cmd.Parameters.AddWithValue("@role", role);
+                cmd.Parameters.AddWithValue("@id", userId);
+                return cmd.ExecuteNonQuery() > 0;
+            }
+        }
+        catch (SqliteException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Reactivates a disabled user.
+    /// </summary>
+    public static bool ReactivateUser(int userId)
+    {
+        using var connection = DatabaseContext.GetConnection();
+        connection.Open();
+
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = "UPDATE users SET IsActive = 1 WHERE Id = @id;";
+        cmd.Parameters.AddWithValue("@id", userId);
+        return cmd.ExecuteNonQuery() > 0;
+    }
+
+    /// <summary>
     /// Gets all users (for manager admin panel).
     /// </summary>
     public static List<User> GetAllUsers()

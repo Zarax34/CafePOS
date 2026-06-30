@@ -26,7 +26,7 @@
                                Foreground="#555" VerticalAlignment="Center" Margin="10,0,5,0"/>
                     <DatePicker x:Name="ReportDatePicker" Width="130" Height="36" VerticalAlignment="Center" Margin="0,0,15,0"/>
 
-                    <Button x:Name="BtnDailyReport" Content="تقرير يومي"
+                    <Button x:Name="BtnDailyReport" Content="تقرير 30 يوم"
                             Style="{StaticResource AccentButton}" Margin="5,0"
                             Click="DailyReport_Click"/>
                     <Button x:Name="BtnMonthlyReport" Content="تقرير شهري"
@@ -35,6 +35,10 @@
                     <Button x:Name="BtnTopProducts" Content="الأكثر مبيعاً"
                             Style="{StaticResource AccentButton}" Margin="5,0"
                             Click="TopProducts_Click"/>
+                    <Button x:Name="BtnExport" Content="📥 تصدير التقرير"
+                            Style="{StaticResource PrimaryButton}" Margin="5,0"
+                            FontSize="14" Padding="16,8"
+                            Click="ExportReport_Click"/>
                     <Button x:Name="BtnShiftClose" Content="إغلاق الشفت"
                             Style="{StaticResource PrimaryButton}" Margin="5,0"
                             FontSize="14" Padding="16,8"

@@ -11,6 +11,13 @@ public class SalesReport
     public int OrderCount { get; set; }
 }
 
+public class DailyBreakdownItem
+{
+    public string Date { get; set; } = string.Empty;
+    public int OrderCount { get; set; }
+    public decimal TotalRevenue { get; set; }
+}
+
 public class TopProductItem
 {
     public string Name { get; set; } = string.Empty;
@@ -24,6 +31,13 @@ public static class ReportService
     {
         var from = date.Date.ToString("yyyy-MM-dd 00:00:00");
         var to = date.Date.ToString("yyyy-MM-dd 23:59:59");
+        return GetSalesReportForRange(from, to);
+    }
+
+    public static SalesReport Get30DaySalesReport(DateTime startDate)
+    {
+        var from = startDate.Date.ToString("yyyy-MM-dd 00:00:00");
+        var to = startDate.Date.AddDays(29).ToString("yyyy-MM-dd 23:59:59");
         return GetSalesReportForRange(from, to);
     }
 
@@ -75,6 +89,39 @@ public static class ReportService
 
         report.NetCash = report.TotalRevenue - report.TotalReturns;
         return report;
+    }
+
+    public static List<DailyBreakdownItem> GetDailyBreakdown(string fromDate, string toDate)
+    {
+        var items = new List<DailyBreakdownItem>();
+        using var connection = DatabaseContext.GetConnection();
+        connection.Open();
+
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = @"
+            SELECT substr(CreatedAt,1,10) AS Day,
+                   COUNT(*) AS OrderCount,
+                   COALESCE(SUM(Total), 0) AS TotalRevenue
+            FROM orders
+            WHERE CreatedAt >= @from AND CreatedAt <= @to
+            GROUP BY substr(CreatedAt,1,10)
+            ORDER BY Day ASC;
+        ";
+        cmd.Parameters.AddWithValue("@from", fromDate);
+        cmd.Parameters.AddWithValue("@to", toDate);
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            items.Add(new DailyBreakdownItem
+            {
+                Date = reader.GetString(0),
+                OrderCount = reader.GetInt32(1),
+                TotalRevenue = (decimal)reader.GetDouble(2)
+            });
+        }
+
+        return items;
     }
 
     public static List<TopProductItem> GetTopProducts(DateTime from, DateTime to, int limit = 10)

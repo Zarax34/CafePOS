@@ -94,12 +94,14 @@
                                     </Style>
                                 </Border.Style>
                                 <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
 
                                     <StackPanel Grid.Column="0">
                                         <TextBlock Text="{Binding Name}" FontSize="15"
@@ -143,6 +145,45 @@
                                                 <ControlTemplate.Triggers>
                                                     <Trigger Property="IsMouseOver" Value="True">
                                                         <Setter TargetName="bg" Property="Background" Value="#DDD"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                    </Button>
+
+                                    <Button Grid.Column="4" Content="تعديل"
+                                            FontSize="11" Padding="8,4" Cursor="Hand"
+                                            Tag="{Binding}" Click="EditProduct_Click">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border x:Name="bg" Background="#E3D5CA"
+                                                        CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                                    <ContentPresenter HorizontalAlignment="Center"
+                                                                      VerticalAlignment="Center"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="bg" Property="Background" Value="#D7C4B0"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                    </Button>
+
+                                    <Button Grid.Column="5" Content="حذف"
+                                            FontSize="11" Padding="8,4" Cursor="Hand"
+                                            Foreground="White" Margin="5,0,0,0"
+                                            Tag="{Binding Id}" Click="DeleteProduct_Click">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border x:Name="bg" Background="#D32F2F"
+                                                        CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                                    <ContentPresenter HorizontalAlignment="Center"
+                                                                      VerticalAlignment="Center"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="bg" Property="Background" Value="#B71C1C"/>
                                                     </Trigger>
                                                 </ControlTemplate.Triggers>
                                             </ControlTemplate>

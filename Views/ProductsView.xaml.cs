@@ -141,6 +141,43 @@ public partial class ProductsView : UserControl
         }
     }
 
+    private void DeleteProduct_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is int productId)
+        {
+            var product = ProductsList.Items.OfType<Product>().FirstOrDefault(p => p.Id == productId);
+            if (product == null) return;
+
+            var result = CustomMessageBox.Show(
+                $"هل أنت متأكد من حذف المنتج '{product.Name}'؟",
+                "تأكيد الحذف",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    ProductService.DeleteProduct(productId);
+                    LoadProducts();
+                }
+                catch (Exception ex)
+                {
+                    CustomMessageBox.Show($"حدث خطأ أثناء الحذف: {ex.Message}", "خطأ",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+    }
+
+    private void EditProduct_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is Product product)
+        {
+            ProductsList.SelectedItem = product;
+        }
+    }
+
     private void ClearForm_Click(object sender, RoutedEventArgs e)
     {
         ClearFormInternal();
