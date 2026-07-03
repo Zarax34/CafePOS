@@ -15,35 +15,69 @@ public partial class MainWindow : Window
 
         _currentUser = user;
         SetupUI();
-        NavigateTo("POS");
+
+        if (_currentUser.IsCashier)
+            NavigateTo("POS");
+        else if (_currentUser.IsStoreManager)
+            NavigateTo("Products");
+        else
+            NavigateTo("POS");
     }
 
     private void SetupUI()
     {
         // User greeting
         UserGreeting.Text = $"مرحباً، {(!string.IsNullOrWhiteSpace(_currentUser.FullName) ? _currentUser.FullName : _currentUser.Username)}";
-        RoleBadge.Text = _currentUser.IsManager ? "مدير" : "كاشير";
 
-        // Role-based visibility: hide manager-only buttons for cashier
-        if (!_currentUser.IsManager)
+        // Role badge
+        if (_currentUser.IsManager)
+            RoleBadge.Text = "مدير";
+        else if (_currentUser.IsStoreManager)
+            RoleBadge.Text = "مدير محل";
+        else
+            RoleBadge.Text = "كاشير";
+
+        // Role-based visibility
+        if (_currentUser.IsCashier)
         {
+            // Cashier: فقط نقطة البيع والمرتجعات والفواتير
+            BtnPurchases.Visibility = Visibility.Collapsed;
             BtnReports.Visibility = Visibility.Collapsed;
             BtnProducts.Visibility = Visibility.Collapsed;
             BtnSettings.Visibility = Visibility.Collapsed;
-        }
 
-        // Open shift automatically for the cashier/manager on startup if none exists
-        try
-        {
-            var currentShift = ShiftService.GetCurrentShift(_currentUser.Id);
-            if (currentShift == null)
+            // Hide returns button if returns are disabled by admin
+            if (!SettingsService.IsReturnsEnabled())
             {
-                ShiftService.OpenShift(_currentUser.Id);
+                BtnReturns.Visibility = Visibility.Collapsed;
             }
         }
-        catch
+        else if (_currentUser.IsStoreManager)
         {
-            // Fail silently or handle
+            // Store manager: فقط المنتجات والمشتريات والفواتير
+            BtnPOS.Visibility = Visibility.Collapsed;
+            BtnReturns.Visibility = Visibility.Collapsed;
+            BtnReports.Visibility = Visibility.Collapsed;
+            BtnSettings.Visibility = Visibility.Collapsed;
+            ShiftClose.Visibility = Visibility.Collapsed;
+        }
+        // Full manager (admin): يرى كل الأزرار
+
+        // Open shift automatically on startup if none exists (not needed for store managers)
+        if (!_currentUser.IsStoreManager)
+        {
+            try
+            {
+                var currentShift = ShiftService.GetCurrentShift(_currentUser.Id);
+                if (currentShift == null)
+                {
+                    ShiftService.OpenShift(_currentUser.Id);
+                }
+            }
+            catch
+            {
+                // Fail silently
+            }
         }
     }
 
@@ -94,17 +128,38 @@ public partial class MainWindow : Window
         switch (page)
         {
             case "POS":
-                _posView ??= new POSView();
-                _posView.Refresh();
-                ContentArea.Content = _posView;
+                if (!_currentUser.IsStoreManager)
+                {
+                    _posView ??= new POSView();
+                    _posView.Refresh();
+                    ContentArea.Content = _posView;
+                }
                 break;
 
             case "Returns":
-                ContentArea.Content = new ReturnsView();
+                if (!_currentUser.IsStoreManager)
+                {
+                    if (_currentUser.IsCashier && !SettingsService.IsReturnsEnabled())
+                    {
+                        CustomMessageBox.Show("تم تعطيل المرتجعات للكاشير من قبل مدير النظام", "غير مسموح",
+                            MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+                    ContentArea.Content = new ReturnsView();
+                }
                 break;
 
             case "Invoices":
                 ContentArea.Content = new InvoicesView();
+                break;
+
+            case "Purchases":
+                if (_currentUser.IsManager || _currentUser.IsStoreManager)
+                {
+                    var purchasesView = new PurchasesView();
+                    purchasesView.Refresh();
+                    ContentArea.Content = purchasesView;
+                }
                 break;
 
             case "Reports":
@@ -113,7 +168,7 @@ public partial class MainWindow : Window
                 break;
 
             case "Products":
-                if (_currentUser.IsManager)
+                if (_currentUser.IsManager || _currentUser.IsStoreManager)
                     ContentArea.Content = new ProductsView();
                 break;
 

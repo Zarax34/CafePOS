@@ -47,8 +47,9 @@
             <TextBlock Text="أدخل المبلغ الفعلي الموجود في الخزينة (ر.ي):" FontSize="14" FontWeight="SemiBold"
                        Foreground="#555" FontFamily="{StaticResource AppFont}" Margin="5,0,0,6"/>
             <TextBox x:Name="ActualCashBox" Style="{StaticResource RoundedTextBox}"
-                     FontSize="18" FlowDirection="LeftToRight" Margin="0,0,0,25" Height="45"
-                     VerticalContentAlignment="Center" HorizontalContentAlignment="Center" FontWeight="Bold"/>
+                     FontSize="22" FlowDirection="LeftToRight" Margin="0,0,0,25" Height="50"
+                     VerticalContentAlignment="Center" HorizontalContentAlignment="Center" FontWeight="Bold"
+                     TextAlignment="Center" KeyDown="ActualCashBox_KeyDown"/>
 
             <!-- Buttons -->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">

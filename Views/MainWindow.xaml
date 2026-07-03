@@ -93,32 +93,37 @@
                     <Button x:Name="BtnPOS" Content="🏪 نقطة البيع"
                             Style="{StaticResource NavButton}"
                             Click="NavButton_Click" Tag="POS"
-                            Margin="3,0"/>
+                            Margin="1,0"/>
 
                     <Button x:Name="BtnReturns" Content="↩ المرتجعات"
                             Style="{StaticResource NavButton}"
                             Click="NavButton_Click" Tag="Returns"
-                            Margin="3,0"/>
+                            Margin="1,0"/>
 
                     <Button x:Name="BtnInvoices" Content="📄 الفواتير"
                             Style="{StaticResource NavButton}"
                             Click="NavButton_Click" Tag="Invoices"
-                            Margin="3,0"/>
+                            Margin="1,0"/>
+
+                    <Button x:Name="BtnPurchases" Content="🛒 المشتريات"
+                            Style="{StaticResource NavButton}"
+                            Click="NavButton_Click" Tag="Purchases"
+                            Margin="1,0"/>
 
                     <Button x:Name="BtnReports" Content="📊 التقارير"
                             Style="{StaticResource NavButton}"
                             Click="NavButton_Click" Tag="Reports"
-                            Margin="3,0"/>
+                            Margin="1,0"/>
 
                     <Button x:Name="BtnProducts" Content="📦 المنتجات"
                             Style="{StaticResource NavButton}"
                             Click="NavButton_Click" Tag="Products"
-                            Margin="3,0"/>
+                            Margin="1,0"/>
 
                     <Button x:Name="BtnSettings" Content="⚙ الإعدادات"
                             Style="{StaticResource NavButton}"
                             Click="NavButton_Click" Tag="Settings"
-                            Margin="3,0"/>
+                            Margin="1,0"/>
                 </StackPanel>
 
                 <!-- User Info & Controls -->
@@ -138,7 +143,7 @@
                                VerticalAlignment="Center"
                                Margin="0,0,15,0"/>
 
-                    <Button Content="🔒 إغلاق الشفت"
+                    <Button x:Name="ShiftClose" Content="🔒 إغلاق الشفت"
                             Style="{StaticResource AccentButton}"
                             Click="ShiftClose_Click"
                             Margin="0,0,5,0" Padding="12,6"/>

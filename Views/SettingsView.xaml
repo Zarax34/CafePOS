@@ -62,12 +62,33 @@
                         </DockPanel>
                         <Border Height="1" Background="#EEE" Margin="0,0,0,12"/>
 
-                        <TextBlock Text="اسم الطابعة الحرارية" FontSize="14" FontWeight="SemiBold"
+                        <TextBlock Text="الطابعة الحرارية" FontSize="14" FontWeight="SemiBold"
                                    Foreground="#555" Margin="0,0,0,6"/>
-                        <TextBox x:Name="PrinterNameBox" Style="{StaticResource RoundedTextBox}"
-                                 FontSize="14" FlowDirection="LeftToRight" Margin="0,0,0,5"/>
-                        <TextBlock Text="اتركه فارغاً لاستخدام الاسم الافتراضي POS-80"
-                                   FontSize="11" Foreground="#999" Margin="0,0,0,5"/>
+                        <DockPanel Margin="0,0,0,5">
+                            <Button x:Name="BtnDetectPrinters" Content="🔍 كشف"
+                                    FontSize="12" Padding="10,6" Cursor="Hand"
+                                    Click="DetectPrinters_Click"
+                                    DockPanel.Dock="Left" Margin="0,0,8,0">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="bg" Background="{StaticResource AccentCopperBrush}"
+                                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                              TextElement.Foreground="White"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="bg" Property="Background" Value="{StaticResource PrimaryBrownBrush}"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                            <ComboBox x:Name="PrinterCombo"
+                                      FontSize="14" FlowDirection="LeftToRight"
+                                      Text="اختيار طابعة..." IsEditable="True"/>
+                        </DockPanel>
+                        <TextBlock x:Name="PrinterStatusText" FontSize="11" Foreground="#999" Margin="0,0,0,5"/>
                     </StackPanel>
                 </Border>
 
@@ -97,6 +118,32 @@
                         <TextBox x:Name="DiscountPercentBox" Style="{StaticResource RoundedTextBox}"
                                  FontSize="14" FlowDirection="LeftToRight" Width="120"
                                  HorizontalAlignment="Right"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Returns Permission Section -->
+                <Border Background="White" CornerRadius="16" Padding="25" Margin="0,0,0,15">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.08"/>
+                    </Border.Effect>
+                    <StackPanel>
+                        <TextBlock Text="صلاحيات الكاشير" FontSize="17" FontWeight="Bold"
+                                   Foreground="{StaticResource PrimaryBrownBrush}" Margin="0,0,0,15"/>
+
+                        <DockPanel Margin="0,0,0,5">
+                            <TextBlock Text="السماح للكاشير بإضافة مرتجعات" FontSize="14"
+                                       VerticalAlignment="Center" Foreground="#555"/>
+                            <CheckBox x:Name="ReturnsEnabledCheck"
+                                      HorizontalAlignment="Left"
+                                      VerticalAlignment="Center">
+                                <CheckBox.LayoutTransform>
+                                    <ScaleTransform ScaleX="1.3" ScaleY="1.3"/>
+                                </CheckBox.LayoutTransform>
+                            </CheckBox>
+                        </DockPanel>
+                        <TextBlock FontSize="11" Foreground="#999" Margin="22,-5,0,0">
+                            عند إلغاء التفعيل، سيتم إخفاء زر المرتجعات للكاشير
+                        </TextBlock>
                     </StackPanel>
                 </Border>
 
@@ -138,6 +185,9 @@
                                                         <Style TargetType="TextBlock">
                                                             <Setter Property="Text" Value="كاشير"/>
                                                             <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsStoreManager}" Value="True">
+                                                                    <Setter Property="Text" Value="مدير محل"/>
+                                                                </DataTrigger>
                                                                 <DataTrigger Binding="{Binding IsManager}" Value="True">
                                                                     <Setter Property="Text" Value="مدير"/>
                                                                 </DataTrigger>
@@ -426,6 +476,119 @@
                         <!-- Footer -->
                         <TextBlock x:Name="PreviewFooter" Text="شكراً لزيارتكم"
                                    FontSize="12" Foreground="#666"
+                                   HorizontalAlignment="Center"
+                                   FontFamily="Courier New"/>
+
+                        <!-- ======= MINI RECEIPT (attached copy) ======= -->
+                        <TextBlock Text="══════════════════════════"
+                                   FontSize="10" Foreground="#999"
+                                   HorizontalAlignment="Center"
+                                   FontFamily="Courier New" Margin="0,10,0,0"/>
+
+                        <TextBlock Text="** فاتورة مصغرة **"
+                                   FontSize="13" FontWeight="Bold"
+                                   HorizontalAlignment="Center"
+                                   FontFamily="Courier New" Margin="0,5,0,5"/>
+
+                        <TextBlock Text="──────────────────────"
+                                   FontSize="10" Foreground="#999"
+                                   HorizontalAlignment="Center"
+                                   FontFamily="Courier New"/>
+
+                        <Grid Margin="0,3">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="رقم الطلب:"
+                                       FontSize="10" Foreground="#555"
+                                       FontFamily="Courier New"/>
+                            <TextBlock Grid.Column="1" Text="001"
+                                       FontSize="10" Foreground="#555"
+                                       FlowDirection="LeftToRight" HorizontalAlignment="Left"
+                                       FontFamily="Courier New"/>
+                        </Grid>
+                        <Grid Margin="0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="العميل:"
+                                       FontSize="10" Foreground="#555"
+                                       FontFamily="Courier New"/>
+                            <TextBlock Grid.Column="1" Text="أحمد محمد"
+                                       FontSize="10" FontWeight="SemiBold" Foreground="#333"
+                                       HorizontalAlignment="Left"
+                                       FontFamily="Courier New"/>
+                        </Grid>
+                        <Grid Margin="0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="التاريخ:"
+                                       FontSize="10" Foreground="#555"
+                                       FontFamily="Courier New"/>
+                            <TextBlock Grid.Column="1" Text="2026-06-30 12:30"
+                                       FontSize="10" Foreground="#555"
+                                       FlowDirection="LeftToRight" HorizontalAlignment="Left"
+                                       FontFamily="Courier New"/>
+                        </Grid>
+
+                        <TextBlock Text="──────────────────────"
+                                   FontSize="10" Foreground="#999"
+                                   HorizontalAlignment="Center"
+                                   FontFamily="Courier New"/>
+
+                        <Grid Margin="0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="قهوة عربية ×2" FontSize="10"
+                                       FontFamily="Courier New"/>
+                            <TextBlock Grid.Column="1" Text="500.00" FontSize="10"
+                                       FlowDirection="LeftToRight"
+                                       FontFamily="Courier New"/>
+                        </Grid>
+                        <Grid Margin="0,1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="كيكة شوكولاتة ×1" FontSize="10"
+                                       FontFamily="Courier New"/>
+                            <TextBlock Grid.Column="1" Text="350.00" FontSize="10"
+                                       FlowDirection="LeftToRight"
+                                       FontFamily="Courier New"/>
+                        </Grid>
+
+                        <TextBlock Text="──────────────────────"
+                                   FontSize="10" Foreground="#999"
+                                   HorizontalAlignment="Center"
+                                   FontFamily="Courier New"/>
+
+                        <Grid Margin="0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="الإجمالي:"
+                                       FontSize="11" FontWeight="Bold"
+                                       FontFamily="Courier New"/>
+                            <TextBlock Grid.Column="1" Text="850.00 ر.ي"
+                                       FontSize="11" FontWeight="Bold"
+                                       FlowDirection="LeftToRight" HorizontalAlignment="Left"
+                                       FontFamily="Courier New"/>
+                        </Grid>
+
+                        <TextBlock x:Name="PreviewMiniFooter" Text="كافيه"
+                                   FontSize="9" Foreground="#999"
+                                   HorizontalAlignment="Center"
+                                   FontFamily="Courier New" Margin="0,3,0,0"/>
+
+                        <TextBlock Text="══════════════════════════"
+                                   FontSize="10" Foreground="#999"
                                    HorizontalAlignment="Center"
                                    FontFamily="Courier New"/>
                     </StackPanel>

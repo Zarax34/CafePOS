@@ -10,11 +10,11 @@ none
 false
 TRACE;RELEASE;NET;NET8_0;NETCOREAPP
 E:\my-projects\cafe-system\App.xaml
-141549066902
+15-500840142
 
-461702447058
+501733311434
 213-1994073220
-Views\AddUserWindow.xaml;Views\CloseShiftWindow.xaml;Views\CustomMessageBox.xaml;Views\InputDialog.xaml;Views\InvoicesView.xaml;Views\LicenseWindow.xaml;Views\LoginWindow.xaml;Views\MainWindow.xaml;Views\ManageCategoriesWindow.xaml;Views\POSView.xaml;Views\ProductsView.xaml;Views\ReportsView.xaml;Views\ReturnsView.xaml;Views\SettingsView.xaml;
+Views\AddUserWindow.xaml;Views\CloseShiftWindow.xaml;Views\CustomMessageBox.xaml;Views\InputDialog.xaml;Views\InvoicesView.xaml;Views\LicenseWindow.xaml;Views\LoginWindow.xaml;Views\MainWindow.xaml;Views\ManageCategoriesWindow.xaml;Views\POSView.xaml;Views\ProductsView.xaml;Views\PurchasesView.xaml;Views\ReportsView.xaml;Views\ReturnsView.xaml;Views\SettingsView.xaml;
 
 False
 

@@ -40,6 +40,7 @@ public class ProductBackup
     public string? ImagePath { get; set; }
     public bool IsActive { get; set; }
     public int SortOrder { get; set; }
+    public bool IsPurchaseOnly { get; set; }
 }
 
 public class OrderBackup
@@ -143,7 +144,7 @@ public static class BackupService
         using (var cmd = connection.CreateCommand())
         {
             cmd.CommandText = @"
-                SELECT p.Name, p.Price, c.Name, p.ImagePath, p.IsActive, p.SortOrder
+                SELECT p.Name, p.Price, c.Name, p.ImagePath, p.IsActive, p.SortOrder, p.IsPurchaseOnly
                 FROM products p
                 JOIN categories c ON p.CategoryId = c.Id;";
             using var reader = cmd.ExecuteReader();
@@ -156,7 +157,8 @@ public static class BackupService
                     CategoryName = reader.GetString(2),
                     ImagePath = reader.IsDBNull(3) ? null : reader.GetString(3),
                     IsActive = reader.GetInt32(4) == 1,
-                    SortOrder = reader.GetInt32(5)
+                    SortOrder = reader.GetInt32(5),
+                    IsPurchaseOnly = reader.GetInt32(6) == 1
                 });
             }
         }
@@ -422,14 +424,15 @@ public static class BackupService
                     using var cmd = connection.CreateCommand();
                     cmd.Transaction = transaction;
                     cmd.CommandText = @"
-                        INSERT INTO products (Name, Price, CategoryId, ImagePath, IsActive, SortOrder)
-                        VALUES (@n, @p, @c, @i, @a, @s);";
+                        INSERT INTO products (Name, Price, CategoryId, ImagePath, IsActive, SortOrder, IsPurchaseOnly)
+                        VALUES (@n, @p, @c, @i, @a, @s, @po);";
                     cmd.Parameters.AddWithValue("@n", pb.Name);
                     cmd.Parameters.AddWithValue("@p", (double)pb.Price);
                     cmd.Parameters.AddWithValue("@c", catId);
                     cmd.Parameters.AddWithValue("@i", (object?)pb.ImagePath ?? DBNull.Value);
                     cmd.Parameters.AddWithValue("@a", pb.IsActive ? 1 : 0);
                     cmd.Parameters.AddWithValue("@s", pb.SortOrder);
+                    cmd.Parameters.AddWithValue("@po", pb.IsPurchaseOnly ? 1 : 0);
                     cmd.ExecuteNonQuery();
                     productsAdded++;
                 }

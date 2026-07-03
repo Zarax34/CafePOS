@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using CafePOS.Services;
 using ClosedXML.Excel;
 using Microsoft.Win32;
@@ -88,34 +89,48 @@ public partial class ReportsView : UserControl
             ws.Cell("A1").Value = ReportTitle.Text;
             ws.Cell("A1").Style.Font.Bold = true;
             ws.Cell("A1").Style.Font.FontSize = 16;
-            ws.Range("A1:C1").Merge();
+            ws.Range("A1:E1").Merge();
 
             // Header row
             ws.Cell("A3").Value = "التاريخ";
             ws.Cell("B3").Value = "عدد الطلبات";
             ws.Cell("C3").Value = "إجمالي المبيعات";
+            ws.Cell("D3").Value = "المشتريات";
+            ws.Cell("E3").Value = "مبلغ الخزينة";
 
-            var headerRange = ws.Range("A3:C3");
+            var headerRange = ws.Range("A3:E3");
             headerRange.Style.Font.Bold = true;
             headerRange.Style.Fill.BackgroundColor = XLColor.FromArgb(0x8D6E63);
             headerRange.Style.Font.FontColor = XLColor.White;
             headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
             decimal grandTotal = 0;
+            decimal grandCash = 0;
+            decimal grandPurchases = 0;
             int grandOrders = 0;
             int row = 4;
+
+            // Get daily purchases
+            var dailyPurchases = PurchaseService.GetDailyPurchasesTotal(date, date.AddDays(29).AddHours(23).AddMinutes(59).AddSeconds(59));
 
             for (int i = 0; i < 30; i++)
             {
                 var dayStr = date.AddDays(i).ToString("yyyy-MM-dd");
                 var match = breakdown.FirstOrDefault(d => d.Date == dayStr);
+                var purchaseAmt = dailyPurchases.GetValueOrDefault(dayStr, 0);
 
                 ws.Cell(row, 1).Value = dayStr;
                 ws.Cell(row, 2).Value = match?.OrderCount ?? 0;
                 ws.Cell(row, 3).Value = (double)(match?.TotalRevenue ?? 0);
                 ws.Cell(row, 3).Style.NumberFormat.NumberFormatId = 4;
+                ws.Cell(row, 4).Value = (double)purchaseAmt;
+                ws.Cell(row, 4).Style.NumberFormat.NumberFormatId = 4;
+                ws.Cell(row, 5).Value = (double)(match?.ShiftCloseCash ?? 0);
+                ws.Cell(row, 5).Style.NumberFormat.NumberFormatId = 4;
 
                 grandTotal += match?.TotalRevenue ?? 0;
+                grandCash += match?.ShiftCloseCash ?? 0;
+                grandPurchases += purchaseAmt;
                 grandOrders += match?.OrderCount ?? 0;
                 row++;
             }
@@ -129,8 +144,14 @@ public partial class ReportsView : UserControl
             ws.Cell(totalRow, 3).Value = (double)grandTotal;
             ws.Cell(totalRow, 3).Style.Font.Bold = true;
             ws.Cell(totalRow, 3).Style.NumberFormat.NumberFormatId = 4;
+            ws.Cell(totalRow, 4).Value = (double)grandPurchases;
+            ws.Cell(totalRow, 4).Style.Font.Bold = true;
+            ws.Cell(totalRow, 4).Style.NumberFormat.NumberFormatId = 4;
+            ws.Cell(totalRow, 5).Value = (double)grandCash;
+            ws.Cell(totalRow, 5).Style.Font.Bold = true;
+            ws.Cell(totalRow, 5).Style.NumberFormat.NumberFormatId = 4;
 
-            var totalRange = ws.Range(totalRow, 1, totalRow, 3);
+            var totalRange = ws.Range(totalRow, 1, totalRow, 5);
             totalRange.Style.Fill.BackgroundColor = XLColor.FromArgb(0xE8F5E9);
             totalRange.Style.Font.Bold = true;
 
@@ -153,12 +174,22 @@ public partial class ReportsView : UserControl
             ws.Cell(summaryRow + 3, 2).Value = (double)report.TotalReturns;
             ws.Cell(summaryRow + 3, 2).Style.NumberFormat.NumberFormatId = 4;
 
-            ws.Cell(summaryRow + 4, 1).Value = "صافي التحصيل";
-            ws.Cell(summaryRow + 4, 2).Value = (double)report.NetCash;
+            ws.Cell(summaryRow + 4, 1).Value = "إجمالي المشتريات";
+            ws.Cell(summaryRow + 4, 2).Value = (double)report.TotalPurchases;
             ws.Cell(summaryRow + 4, 2).Style.NumberFormat.NumberFormatId = 4;
 
-            ws.Cell(summaryRow + 5, 1).Value = "عدد الفواتير";
-            ws.Cell(summaryRow + 5, 2).Value = report.OrderCount;
+            ws.Cell(summaryRow + 5, 1).Value = "صافي التحصيل";
+            ws.Cell(summaryRow + 5, 2).Value = (double)report.NetCash;
+            ws.Cell(summaryRow + 5, 2).Style.NumberFormat.NumberFormatId = 4;
+
+            ws.Cell(summaryRow + 6, 1).Value = "صافي الربح";
+            ws.Cell(summaryRow + 6, 2).Value = (double)report.NetProfit;
+            ws.Cell(summaryRow + 6, 2).Style.NumberFormat.NumberFormatId = 4;
+            ws.Cell(summaryRow + 6, 1).Style.Font.FontColor = XLColor.FromArgb(0x2E7D32);
+            ws.Cell(summaryRow + 6, 2).Style.Font.FontColor = XLColor.FromArgb(0x2E7D32);
+
+            ws.Cell(summaryRow + 7, 1).Value = "عدد الفواتير";
+            ws.Cell(summaryRow + 7, 2).Value = report.OrderCount;
 
             // Top products section
             var topRow = summaryRow + 7;
@@ -192,6 +223,128 @@ public partial class ReportsView : UserControl
             workbook.SaveAs(saveDialog.FileName);
 
             CustomMessageBox.Show($"تم تصدير التقرير بنجاح!\n\n{saveDialog.FileName}", "تم ✓",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            CustomMessageBox.Show($"حدث خطأ أثناء التصدير:\n{ex.Message}", "خطأ",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void YearlyReport_Click(object sender, RoutedEventArgs e)
+    {
+        var year = GetSelectedDate().Year;
+
+        var saveDialog = new SaveFileDialog
+        {
+            Filter = "ملف Excel|*.xlsx",
+            Title = $"تصدير التقرير السنوي {year}",
+            FileName = $"CafePOS_Yearly_{year}.xlsx"
+        };
+
+        if (saveDialog.ShowDialog() != true) return;
+
+        try
+        {
+            var breakdown = ReportService.GetYearlyBreakdown(year);
+
+            using var workbook = new XLWorkbook();
+            var ws = workbook.Worksheets.Add($"تقرير سنوي {year}");
+
+            ws.RightToLeft = true;
+
+            // Title
+            ws.Cell("A1").Value = $"التقرير السنوي ({year})";
+            ws.Cell("A1").Style.Font.Bold = true;
+            ws.Cell("A1").Style.Font.FontSize = 16;
+            ws.Range("A1:G1").Merge();
+
+            // Header row
+            ws.Cell("A3").Value = "الشهر";
+            ws.Cell("B3").Value = "عدد الطلبات";
+            ws.Cell("C3").Value = "إجمالي المبيعات";
+            ws.Cell("D3").Value = "الخصومات";
+            ws.Cell("E3").Value = "المرتجعات";
+            ws.Cell("F3").Value = "المشتريات";
+            ws.Cell("G3").Value = "صافي التحصيل";
+
+            var headerRange = ws.Range("A3:G3");
+            headerRange.Style.Font.Bold = true;
+            headerRange.Style.Fill.BackgroundColor = XLColor.FromArgb(0x8D6E63);
+            headerRange.Style.Font.FontColor = XLColor.White;
+            headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            decimal grandRevenue = 0, grandDiscounts = 0, grandReturns = 0, grandNet = 0;
+            int grandOrders = 0;
+            int row = 4;
+
+            var monthNames = new Dictionary<string, string>
+            {
+                ["01"] = "يناير", ["02"] = "فبراير", ["03"] = "مارس",
+                ["04"] = "أبريل", ["05"] = "مايو", ["06"] = "يونيو",
+                ["07"] = "يوليو", ["08"] = "أغسطس", ["09"] = "سبتمبر",
+                ["10"] = "أكتوبر", ["11"] = "نوفمبر", ["12"] = "ديسمبر"
+            };
+
+            foreach (var item in breakdown)
+            {
+                var monthParts = item.Month.Split('-');
+                var monthName = monthParts.Length == 2 && monthNames.TryGetValue(monthParts[1], out var mn)
+                    ? mn : item.Month;
+
+                ws.Cell(row, 1).Value = monthName;
+                ws.Cell(row, 2).Value = item.OrderCount;
+                ws.Cell(row, 3).Value = (double)item.TotalRevenue;
+                ws.Cell(row, 3).Style.NumberFormat.NumberFormatId = 4;
+                ws.Cell(row, 4).Value = (double)item.TotalDiscounts;
+                ws.Cell(row, 4).Style.NumberFormat.NumberFormatId = 4;
+                ws.Cell(row, 5).Value = (double)item.TotalReturns;
+                ws.Cell(row, 5).Style.NumberFormat.NumberFormatId = 4;
+                ws.Cell(row, 6).Value = (double)item.NetCash;
+                ws.Cell(row, 6).Style.NumberFormat.NumberFormatId = 4;
+
+                grandRevenue += item.TotalRevenue;
+                grandDiscounts += item.TotalDiscounts;
+                grandReturns += item.TotalReturns;
+                grandNet += item.NetCash;
+                grandOrders += item.OrderCount;
+                row++;
+            }
+
+            // Total row
+            var totalRow = row;
+            ws.Cell(totalRow, 1).Value = "المجموع السنوي";
+            ws.Cell(totalRow, 1).Style.Font.Bold = true;
+            ws.Cell(totalRow, 2).Value = grandOrders;
+            ws.Cell(totalRow, 2).Style.Font.Bold = true;
+            ws.Cell(totalRow, 3).Value = (double)grandRevenue;
+            ws.Cell(totalRow, 3).Style.Font.Bold = true;
+            ws.Cell(totalRow, 3).Style.NumberFormat.NumberFormatId = 4;
+            ws.Cell(totalRow, 4).Value = (double)grandDiscounts;
+            ws.Cell(totalRow, 4).Style.Font.Bold = true;
+            ws.Cell(totalRow, 4).Style.NumberFormat.NumberFormatId = 4;
+            ws.Cell(totalRow, 5).Value = (double)grandReturns;
+            ws.Cell(totalRow, 5).Style.Font.Bold = true;
+            ws.Cell(totalRow, 5).Style.NumberFormat.NumberFormatId = 4;
+            ws.Cell(totalRow, 6).Value = (double)grandNet;
+            ws.Cell(totalRow, 6).Style.Font.Bold = true;
+            ws.Cell(totalRow, 6).Style.NumberFormat.NumberFormatId = 4;
+
+            var totalRange = ws.Range(totalRow, 1, totalRow, 6);
+            totalRange.Style.Fill.BackgroundColor = XLColor.FromArgb(0xE8F5E9);
+
+            // Column widths
+            ws.Column(1).Width = 15;
+            ws.Column(2).Width = 16;
+            ws.Column(3).Width = 20;
+            ws.Column(4).Width = 16;
+            ws.Column(5).Width = 16;
+            ws.Column(6).Width = 20;
+
+            workbook.SaveAs(saveDialog.FileName);
+
+            CustomMessageBox.Show($"تم تصدير التقرير السنوي بنجاح!\n\n{saveDialog.FileName}", "تم ✓",
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception ex)
@@ -241,7 +394,9 @@ public partial class ReportsView : UserControl
         TotalRevenueText.Text = $"{report.TotalRevenue:F2} ر.ي";
         TotalDiscountsText.Text = $"-{report.TotalDiscounts:F2} ر.ي";
         TotalReturnsText.Text = $"-{report.TotalReturns:F2} ر.ي";
+        TotalPurchasesText.Text = $"-{report.TotalPurchases:F2} ر.ي";
         NetCashText.Text = $"{report.NetCash:F2} ر.ي";
+        NetProfitText.Text = $"{report.NetProfit:F2} ر.ي";
         OrderCountText.Text = $"عدد الفواتير: {report.OrderCount}";
     }
 
@@ -275,6 +430,14 @@ public partial class ReportsView : UserControl
         ShiftClosePanel.Visibility = Visibility.Visible;
         ShiftResultPanel.Visibility = Visibility.Collapsed;
         ActualCashBox.Text = string.Empty;
+    }
+
+    private void ActualCashBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            ExecuteShiftClose_Click(sender, e);
+        }
     }
 
     private void ExecuteShiftClose_Click(object sender, RoutedEventArgs e)

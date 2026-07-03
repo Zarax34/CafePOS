@@ -61,4 +61,9 @@ public static class SettingsService
         var val = GetSetting("discount_percent");
         return decimal.TryParse(val, out var percent) ? percent : 0m;
     }
+
+    public static bool IsReturnsEnabled()
+    {
+        return GetSetting("returns_enabled") != "0";
+    }
 }

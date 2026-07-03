@@ -11,4 +11,6 @@ public class User
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
     public bool IsManager => Role == "manager";
+    public bool IsStoreManager => Role == "storemanager";
+    public bool IsCashier => Role == "cashier";
 }

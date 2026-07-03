@@ -35,10 +35,14 @@
                     <Button x:Name="BtnTopProducts" Content="الأكثر مبيعاً"
                             Style="{StaticResource AccentButton}" Margin="5,0"
                             Click="TopProducts_Click"/>
+                    <Button x:Name="BtnYearly" Content="📅 تقرير سنوي"
+                             Style="{StaticResource AccentButton}" Margin="5,0"
+                             FontSize="14" Padding="16,8"
+                             Click="YearlyReport_Click"/>
                     <Button x:Name="BtnExport" Content="📥 تصدير التقرير"
-                            Style="{StaticResource PrimaryButton}" Margin="5,0"
-                            FontSize="14" Padding="16,8"
-                            Click="ExportReport_Click"/>
+                             Style="{StaticResource PrimaryButton}" Margin="5,0"
+                             FontSize="14" Padding="16,8"
+                             Click="ExportReport_Click"/>
                     <Button x:Name="BtnShiftClose" Content="إغلاق الشفت"
                             Style="{StaticResource PrimaryButton}" Margin="5,0"
                             FontSize="14" Padding="16,8"
@@ -98,6 +102,16 @@
                         </DockPanel>
                     </Border>
 
+                    <Border Background="#E3F2FD" CornerRadius="10" Padding="15" Margin="0,0,0,10">
+                        <DockPanel>
+                            <TextBlock Text="إجمالي المشتريات" FontSize="14" Foreground="#1565C0"
+                                       VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TotalPurchasesText" FontSize="18" FontWeight="Bold"
+                                       Foreground="#1565C0" HorizontalAlignment="Left"
+                                       FlowDirection="LeftToRight"/>
+                        </DockPanel>
+                    </Border>
+
                     <Border Height="2" Background="#EEE" Margin="0,5"/>
 
                     <Border Background="{StaticResource BackgroundBeigeBrush}" CornerRadius="10"
@@ -109,6 +123,16 @@
                             <TextBlock x:Name="NetCashText" FontSize="24" FontWeight="Bold"
                                        Foreground="{StaticResource PrimaryBrownBrush}"
                                        HorizontalAlignment="Left"
+                                       FlowDirection="LeftToRight"/>
+                        </DockPanel>
+                    </Border>
+
+                    <Border Background="#E8F5E9" CornerRadius="10" Padding="15" Margin="0,0,0,10">
+                        <DockPanel>
+                            <TextBlock Text="صافي الربح (بعد خصم المشتريات)" FontSize="15" FontWeight="Bold"
+                                       Foreground="#2E7D32" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="NetProfitText" FontSize="22" FontWeight="Bold"
+                                       Foreground="#2E7D32" HorizontalAlignment="Left"
                                        FlowDirection="LeftToRight"/>
                         </DockPanel>
                     </Border>
@@ -187,8 +211,9 @@
                                    Margin="0,0,0,10"/>
                         <TextBox x:Name="ActualCashBox"
                                  Style="{StaticResource RoundedTextBox}"
-                                 FontSize="18" FlowDirection="LeftToRight"
-                                 Margin="0,0,0,15"/>
+                                 FontSize="22" FlowDirection="LeftToRight" Height="50"
+                                 Margin="0,0,0,15" TextAlignment="Center"
+                                 KeyDown="ActualCashBox_KeyDown"/>
                         <Button Content="إغلاق الشفت وحساب الفارق"
                                 Style="{StaticResource PrimaryButton}"
                                 Click="ExecuteShiftClose_Click"

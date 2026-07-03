@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Input;
 using CafePOS.Models;
 using CafePOS.Services;
 using CafePOS.Data;
@@ -66,6 +67,14 @@ public partial class CloseShiftWindow : Window
         }
 
         return sales - returns;
+    }
+
+    private void ActualCashBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            Confirm_Click(sender, e);
+        }
     }
 
     private void Cancel_Click(object sender, RoutedEventArgs e)

@@ -167,20 +167,57 @@ public static class PrintService
         }
     }
 
+    private static string ResolvePrinterName(string? configuredName = null)
+    {
+        if (string.IsNullOrWhiteSpace(configuredName))
+            configuredName = SettingsService.GetSetting("printer_name");
+
+        if (!string.IsNullOrWhiteSpace(configuredName))
+        {
+            try
+            {
+                var server = new LocalPrintServer();
+                var match = server.GetPrintQueues()
+                    .FirstOrDefault(q =>
+                        q.FullName.Equals(configuredName, StringComparison.OrdinalIgnoreCase) ||
+                        q.Name.Equals(configuredName, StringComparison.OrdinalIgnoreCase));
+                if (match != null)
+                    return match.FullName;
+            }
+            catch { }
+        }
+
+        // Fallback: use any available printer
+        try
+        {
+            var server = new LocalPrintServer();
+            var anyPrinter = server.GetPrintQueues().FirstOrDefault(q => !q.IsOffline);
+            if (anyPrinter != null)
+                return anyPrinter.FullName;
+        }
+        catch { }
+
+        return configuredName ?? "POS-80";
+    }
+
     /// <summary>
-    /// Prints an order receipt.
+    /// Prints an order receipt with a separate mini receipt attached.
     /// </summary>
     public static bool PrintReceipt(Order order)
     {
-        var printerName = SettingsService.GetSetting("printer_name");
+        var printerName = ResolvePrinterName();
         if (string.IsNullOrWhiteSpace(printerName))
-        {
-            // Try default printer name
             printerName = "POS-80";
-        }
 
-        var data = BuildReceiptData(order);
-        return RawPrinterHelper.SendBytesToPrinter(printerName, data);
+        // Job 1: Main receipt
+        var mainData = BuildReceiptData(order);
+        var success = RawPrinterHelper.SendBytesToPrinter(printerName, mainData);
+
+        // Job 2: Mini receipt (separate print job = separate cut)
+        var miniData = BuildMiniReceiptData(order);
+        success = RawPrinterHelper.SendBytesToPrinter(printerName, miniData) && success;
+
+        return success;
     }
 
     /// <summary>
@@ -188,7 +225,7 @@ public static class PrintService
     /// </summary>
     public static bool PrintReturnReceipt(Return ret)
     {
-        var printerName = SettingsService.GetSetting("printer_name");
+        var printerName = ResolvePrinterName();
         if (string.IsNullOrWhiteSpace(printerName))
             printerName = "POS-80";
 
@@ -319,6 +356,81 @@ public static class PrintService
         return ms.ToArray();
     }
 
+    private static byte[] BuildMiniReceiptData(Order order)
+    {
+        var enc = GetArabicEncoding();
+        using var ms = new MemoryStream();
+
+        ms.Write(ESC_INIT);
+        ms.Write(ESC_CODEPAGE);
+
+        // Feed a bit to push paper out
+        ms.Write(ESC_FEED3);
+
+        // Header
+        ms.Write(ESC_CENTER);
+        ms.Write(ESC_DOUBLE_ON);
+        ms.Write(enc.GetBytes("** فاتورة مصغرة **"));
+        ms.Write(LF);
+        ms.Write(ESC_DOUBLE_OFF);
+
+        ms.Write(enc.GetBytes(new string('-', LINE_WIDTH)));
+        ms.Write(LF);
+
+        ms.Write(ESC_RIGHT);
+
+        ms.Write(enc.GetBytes($"رقم الطلب: {order.OrderNumber}"));
+        ms.Write(LF);
+        ms.Write(enc.GetBytes($"فاتورة رقم: {order.InvoiceNumber}"));
+        ms.Write(LF);
+        ms.Write(enc.GetBytes($"التاريخ: {order.CreatedAt:yyyy-MM-dd HH:mm}"));
+        ms.Write(LF);
+
+        if (!string.IsNullOrWhiteSpace(order.CustomerName))
+        {
+            ms.Write(ESC_BOLD_ON);
+            ms.Write(enc.GetBytes($"العميل: {order.CustomerName}"));
+            ms.Write(LF);
+            ms.Write(ESC_BOLD_OFF);
+        }
+
+        ms.Write(enc.GetBytes(new string('-', LINE_WIDTH)));
+        ms.Write(LF);
+
+        // Items (compact)
+        foreach (var item in order.Items)
+        {
+            ms.Write(enc.GetBytes($"{Truncate(item.ProductName, 20)}  x{item.Quantity}  {item.Subtotal:F2}"));
+            ms.Write(LF);
+        }
+
+        ms.Write(enc.GetBytes(new string('-', LINE_WIDTH)));
+        ms.Write(LF);
+
+        // Total
+        ms.Write(ESC_BOLD_ON);
+        ms.Write(enc.GetBytes(FormatTotalLine("الإجمالي:", order.Total.ToString("F2"))));
+        ms.Write(LF);
+        ms.Write(ESC_BOLD_OFF);
+
+        // Cafe name in footer
+        ms.Write(ESC_CENTER);
+        var cafeName = SettingsService.GetSetting("cafe_name");
+        if (!string.IsNullOrWhiteSpace(cafeName))
+        {
+            ms.Write(enc.GetBytes(cafeName));
+            ms.Write(LF);
+        }
+
+        ms.Write(enc.GetBytes(new string('=', LINE_WIDTH)));
+        ms.Write(LF);
+
+        ms.Write(ESC_FEED3);
+        ms.Write(ESC_CUT);
+
+        return ms.ToArray();
+    }
+
     private static byte[] BuildReturnReceiptData(Return ret)
     {
         var enc = GetArabicEncoding();
@@ -407,27 +519,29 @@ public static class PrintService
     {
         try
         {
-            var printerName = SettingsService.GetSetting("printer_name");
-            if (string.IsNullOrWhiteSpace(printerName))
+            var resolved = ResolvePrinterName();
+            if (string.IsNullOrWhiteSpace(resolved))
             {
-                printerName = "POS-80";
+                return (false, false, "لم يتم العثور على أي طابعة في النظام");
             }
 
             var printServer = new LocalPrintServer();
             var printQueues = printServer.GetPrintQueues();
-            var queue = printQueues.FirstOrDefault(q => q.Name.Equals(printerName, StringComparison.OrdinalIgnoreCase));
+            var queue = printQueues.FirstOrDefault(q =>
+                q.FullName.Equals(resolved, StringComparison.OrdinalIgnoreCase) ||
+                q.Name.Equals(resolved, StringComparison.OrdinalIgnoreCase));
 
             if (queue == null)
             {
-                return (false, false, $"الطابعة '{printerName}' غير معرفة في النظام");
+                return (false, false, $"الطابعة غير معرفة في النظام");
             }
 
             if (queue.IsOffline)
             {
-                return (true, false, $"الطابعة '{printerName}' غير متصلة");
+                return (true, false, $"الطابعة '{queue.FullName}' غير متصلة");
             }
 
-            return (true, true, $"الطابعة '{printerName}' متصلة وجاهزة");
+            return (true, true, $"الطابعة '{queue.FullName}' متصلة وجاهزة");
         }
         catch (Exception ex)
         {

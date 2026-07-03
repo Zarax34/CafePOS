@@ -12,7 +12,11 @@ AppId={{8A2E5B3C-9D4F-4E6B-8A1C-3F5D7E9B2C4A}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-DefaultDirName={autopf}\{#MyAppShortName}
+AppPublisherURL=https://cafe-system.example.com
+VersionInfoVersion={#MyAppVersion}
+VersionInfoCompany={#MyAppPublisher}
+VersionInfoDescription=نظام إدارة الكافيه الذكي
+DefaultDirName={autopf64}\{#MyAppShortName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 OutputDir=installer-output
@@ -21,9 +25,12 @@ Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=admin
+ArchitecturesInstallIn64BitMode=x64compatible
 DisableProgramGroupPage=yes
+UsedUserAreasWarning=no
 SetupIconFile=Assets\app_icon.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
+UninstallDisplayName={#MyAppName}
 
 [Languages]
 Name: "arabic"; MessagesFile: "compiler:Languages\Arabic.isl"
@@ -33,8 +40,6 @@ Name: "desktopicon"; Description: "إنشاء اختصار على سطح الم�
 
 [Files]
 Source: "publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-; Ensure Data directory exists
-Source: "Data\*"; DestDir: "{app}\Data"; Flags: ignoreversion recursesubdirs createallsubdirs onlyifdoesntexist
 
 [Dirs]
 ; Give Users group modify permission on Data folder so the app can write the database
@@ -51,3 +56,20 @@ Filename: "{app}\{#MyAppExeName}"; Description: "تشغيل التطبيق ال�
 [UninstallRun]
 ; Clean up user data on uninstall (optional - commented out to preserve data)
 ; Filename: "{cmd}"; Parameters: "/C rmdir /S /Q ""{app}\Data"""
+
+[Code]
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  ResultCode: Integer;
+begin
+  if CurStep = ssPostInstall then
+  begin
+    // Warm-up: start app briefly, wait 5s, then kill it
+    // This lets Defender scan the files while installer is finishing
+    Exec(ExpandConstant('{app}\{#MyAppExeName}'), '', '', SW_HIDE,
+         ewNoWait, ResultCode);
+    Sleep(5000);
+    Exec('taskkill', ExpandConstant('/f /im {#MyAppExeName}'), '',
+         SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  end;
+end;

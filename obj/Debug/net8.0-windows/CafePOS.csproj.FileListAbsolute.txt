@@ -89,3 +89,5 @@ E:\my-projects\cafe-system\bin\Debug\net8.0-windows\ExcelNumberFormat.dll
 E:\my-projects\cafe-system\bin\Debug\net8.0-windows\RBush.dll
 E:\my-projects\cafe-system\bin\Debug\net8.0-windows\SixLabors.Fonts.dll
 E:\my-projects\cafe-system\bin\Debug\net8.0-windows\System.IO.Packaging.dll
+E:\my-projects\cafe-system\obj\Debug\net8.0-windows\Views\PurchasesView.baml
+E:\my-projects\cafe-system\obj\Debug\net8.0-windows\Views\PurchasesView.g.cs

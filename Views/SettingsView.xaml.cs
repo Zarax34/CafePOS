@@ -1,4 +1,5 @@
 using System.IO;
+using System.Printing;
 using System.Windows;
 using System.Windows.Controls;
 using CafePOS.Models;
@@ -45,9 +46,11 @@ public partial class SettingsView : UserControl
         PhoneBox.Text = settings.GetValueOrDefault("phone", "");
         FooterBox.Text = settings.GetValueOrDefault("footer", "");
         _logoPath = settings.GetValueOrDefault("logo_path", "");
-        PrinterNameBox.Text = settings.GetValueOrDefault("printer_name", "");
+        var savedPrinter = settings.GetValueOrDefault("printer_name", "");
+        RefreshPrinterList(savedPrinter);
         DiscountEnabledCheck.IsChecked = settings.GetValueOrDefault("discount_enabled", "0") == "1";
         DiscountPercentBox.Text = settings.GetValueOrDefault("discount_percent", "10");
+        ReturnsEnabledCheck.IsChecked = settings.GetValueOrDefault("returns_enabled", "1") != "0";
 
         // Load logo preview
         LogoPreviewImg.Source = LoadImageSafe(_logoPath ?? string.Empty);
@@ -305,6 +308,35 @@ public partial class SettingsView : UserControl
         }
     }
 
+    private void RefreshPrinterList(string? selectName = null)
+    {
+        try
+        {
+            var server = new LocalPrintServer();
+            var queues = server.GetPrintQueues();
+            var printerNames = queues.Select(q => q.FullName).Where(n => !string.IsNullOrWhiteSpace(n)).ToList();
+            PrinterCombo.ItemsSource = printerNames;
+
+            if (!string.IsNullOrWhiteSpace(selectName) && printerNames.Contains(selectName))
+                PrinterCombo.SelectedItem = selectName;
+            else if (printerNames.Count > 0)
+                PrinterCombo.SelectedIndex = 0;
+
+            PrinterStatusText.Text = printerNames.Count > 0
+                ? $"✅ تم العثور على {printerNames.Count} طابعة"
+                : "⚠️ لم يتم العثور على أي طابعة";
+        }
+        catch
+        {
+            PrinterStatusText.Text = "❌ فشل الاتصال بخدمة الطابعات";
+        }
+    }
+
+    private void DetectPrinters_Click(object sender, RoutedEventArgs e)
+    {
+        RefreshPrinterList(PrinterCombo.SelectedItem?.ToString());
+    }
+
     // ======================== Save ========================
 
     private void SaveSettings_Click(object sender, RoutedEventArgs e)
@@ -314,8 +346,9 @@ public partial class SettingsView : UserControl
             SettingsService.SetSetting("cafe_name", CafeNameBox.Text.Trim());
             SettingsService.SetSetting("phone", PhoneBox.Text.Trim());
             SettingsService.SetSetting("footer", FooterBox.Text.Trim());
-            SettingsService.SetSetting("printer_name", PrinterNameBox.Text.Trim());
+            SettingsService.SetSetting("printer_name", PrinterCombo.Text.Trim());
             SettingsService.SetSetting("discount_enabled", DiscountEnabledCheck.IsChecked == true ? "1" : "0");
+            SettingsService.SetSetting("returns_enabled", ReturnsEnabledCheck.IsChecked == true ? "1" : "0");
 
             if (decimal.TryParse(DiscountPercentBox.Text.Trim(), out var percent) && percent >= 0 && percent <= 100)
             {

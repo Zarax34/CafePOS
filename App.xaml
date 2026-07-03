@@ -42,8 +42,51 @@
                                     BorderThickness="1.5"
                                     CornerRadius="8"
                                     Padding="{TemplateBinding Padding}">
-                                <ScrollViewer x:Name="PART_ContentHost" Focusable="false"/>
+                                <ScrollViewer x:Name="PART_ContentHost"/>
                             </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Rounded ComboBox Style -->
+            <Style x:Key="RoundedComboBox" TargetType="ComboBox">
+                <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+                <Setter Property="FontSize" Value="16"/>
+                <Setter Property="Padding" Value="12,8"/>
+                <Setter Property="FlowDirection" Value="RightToLeft"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ComboBox">
+                            <Grid>
+                                <Border x:Name="Border" Background="White"
+                                        BorderBrush="{StaticResource AccentCopperBrush}"
+                                        BorderThickness="1.5" CornerRadius="8"
+                                        Padding="{TemplateBinding Padding}">
+                                    <Grid>
+                                        <ContentPresenter x:Name="ContentSite"
+                                                          Content="{TemplateBinding SelectionBoxItem}"
+                                                          ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                          VerticalAlignment="Center"/>
+                                        <TextBox x:Name="EditableTextBox"
+                                                 Visibility="Collapsed"
+                                                 Background="Transparent"
+                                                 VerticalAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+                                <Popup x:Name="Popup" Placement="Bottom"
+                                       IsOpen="{TemplateBinding IsDropDownOpen}"
+                                       AllowsTransparency="True" Focusable="False"
+                                       PopupAnimation="Slide">
+                                    <Border Background="White" BorderBrush="{StaticResource AccentCopperBrush}"
+                                            BorderThickness="1" CornerRadius="6"
+                                            MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                        <ScrollViewer>
+                                            <ItemsPresenter/>
+                                        </ScrollViewer>
+                                    </Border>
+                                </Popup>
+                            </Grid>
                         </ControlTemplate>
                     </Setter.Value>
                 </Setter>
@@ -141,11 +184,11 @@
             <!-- Nav Button Style -->
             <Style x:Key="NavButton" TargetType="Button">
                 <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
-                <Setter Property="FontSize" Value="15"/>
+                <Setter Property="FontSize" Value="14"/>
                 <Setter Property="Foreground" Value="White"/>
                 <Setter Property="Background" Value="Transparent"/>
                 <Setter Property="BorderThickness" Value="0"/>
-                <Setter Property="Padding" Value="16,8"/>
+                <Setter Property="Padding" Value="10,6"/>
                 <Setter Property="Cursor" Value="Hand"/>
                 <Setter Property="Template">
                     <Setter.Value>

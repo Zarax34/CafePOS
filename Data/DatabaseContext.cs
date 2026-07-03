@@ -48,16 +48,40 @@ public static class DatabaseContext
 
     private static void MigrateDatabase(SqliteConnection connection)
     {
+        AddColumnIfMissing(connection, "users", "FullName", "TEXT NOT NULL DEFAULT ''");
+        AddColumnIfMissing(connection, "daily_counters", "LastPurchaseSeq", "INTEGER NOT NULL DEFAULT 0");
+        AddColumnIfMissing(connection, "products", "IsPurchaseOnly", "INTEGER NOT NULL DEFAULT 0");
+
+        // Retroactively mark products that exist in purchase_items but NOT in order_items as IsPurchaseOnly = 1
         try
         {
-            using var cmd = connection.CreateCommand();
-            cmd.CommandText = "ALTER TABLE users ADD COLUMN FullName TEXT NOT NULL DEFAULT '';";
-            cmd.ExecuteNonQuery();
+            using var retro = connection.CreateCommand();
+            retro.CommandText = @"
+                UPDATE products SET IsPurchaseOnly = 1
+                WHERE Id IN (
+                    SELECT DISTINCT pi.ProductId FROM purchase_items pi
+                    WHERE pi.ProductId NOT IN (SELECT DISTINCT oi.ProductId FROM order_items oi)
+                );
+            ";
+            retro.ExecuteNonQuery();
         }
-        catch
+        catch { }
+    }
+
+    private static void AddColumnIfMissing(SqliteConnection connection, string table, string column, string definition)
+    {
+        using var check = connection.CreateCommand();
+        check.CommandText = $"PRAGMA table_info({table});";
+        using var reader = check.ExecuteReader();
+        while (reader.Read())
         {
-            // Column already exists or table doesn't exist yet
+            if (reader.GetString(1) == column)
+                return;
         }
+
+        using var alter = connection.CreateCommand();
+        alter.CommandText = $"ALTER TABLE {table} ADD COLUMN {column} {definition};";
+        alter.ExecuteNonQuery();
     }
 
     private static void CreateTables(SqliteConnection connection)
@@ -88,6 +112,7 @@ public static class DatabaseContext
                 ImagePath TEXT,
                 IsActive INTEGER NOT NULL DEFAULT 1,
                 SortOrder INTEGER NOT NULL DEFAULT 0,
+                IsPurchaseOnly INTEGER NOT NULL DEFAULT 0,
                 FOREIGN KEY(CategoryId) REFERENCES categories(Id)
             );
 
@@ -158,7 +183,30 @@ public static class DatabaseContext
             CREATE TABLE IF NOT EXISTS daily_counters (
                 Date TEXT PRIMARY KEY,
                 LastInvoiceSeq INTEGER NOT NULL DEFAULT 0,
-                LastOrderNum INTEGER NOT NULL DEFAULT 0
+                LastOrderNum INTEGER NOT NULL DEFAULT 0,
+                LastPurchaseSeq INTEGER NOT NULL DEFAULT 0
+            );
+
+            CREATE TABLE IF NOT EXISTS purchases (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                InvoiceNumber TEXT NOT NULL UNIQUE,
+                SupplierName TEXT,
+                Notes TEXT,
+                Total REAL NOT NULL,
+                CreatedBy INTEGER NOT NULL,
+                CreatedAt TEXT NOT NULL,
+                FOREIGN KEY(CreatedBy) REFERENCES users(Id)
+            );
+
+            CREATE TABLE IF NOT EXISTS purchase_items (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                PurchaseId INTEGER NOT NULL,
+                ProductId INTEGER NOT NULL,
+                ProductName TEXT NOT NULL,
+                CostPrice REAL NOT NULL,
+                Quantity INTEGER NOT NULL DEFAULT 1,
+                Subtotal REAL NOT NULL,
+                FOREIGN KEY(PurchaseId) REFERENCES purchases(Id)
             );
         ";
 
@@ -209,7 +257,8 @@ public static class DatabaseContext
                     { "logo_path", "" },
                     { "discount_enabled", "0" },
                     { "discount_percent", "10" },
-                    { "printer_name", "" }
+                    { "printer_name", "" },
+                    { "returns_enabled", "1" }
                 };
 
                 foreach (var setting in defaultSettings)

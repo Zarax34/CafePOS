@@ -164,13 +164,26 @@ oQIDAQAB
     {
         try
         {
-            using var searcher = new ManagementObjectSearcher($"SELECT {propertyName} FROM {wmiClass}");
-            foreach (var obj in searcher.Get())
+            var query = $"SELECT {propertyName} FROM {wmiClass}";
+            using var searcher = new ManagementObjectSearcher(query);
+
+            var task = Task.Run(() =>
             {
-                var val = obj[propertyName]?.ToString()?.Trim();
-                if (!string.IsNullOrEmpty(val))
-                    return val;
-            }
+                var result = "UNKNOWN";
+                foreach (var obj in searcher.Get())
+                {
+                    var val = obj[propertyName]?.ToString()?.Trim();
+                    if (!string.IsNullOrEmpty(val))
+                    {
+                        result = val;
+                        break;
+                    }
+                }
+                return result;
+            });
+
+            if (task.Wait(TimeSpan.FromSeconds(5)))
+                return task.Result;
         }
         catch
         {

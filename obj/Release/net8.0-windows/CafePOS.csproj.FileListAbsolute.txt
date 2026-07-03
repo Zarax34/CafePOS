@@ -89,3 +89,5 @@ E:\my-projects\cafe-system\obj\Release\net8.0-windows\refint\CafePOS.dll
 E:\my-projects\cafe-system\obj\Release\net8.0-windows\CafePOS.pdb
 E:\my-projects\cafe-system\obj\Release\net8.0-windows\CafePOS.genruntimeconfig.cache
 E:\my-projects\cafe-system\obj\Release\net8.0-windows\ref\CafePOS.dll
+E:\my-projects\cafe-system\obj\Release\net8.0-windows\Views\PurchasesView.baml
+E:\my-projects\cafe-system\obj\Release\net8.0-windows\Views\PurchasesView.g.cs

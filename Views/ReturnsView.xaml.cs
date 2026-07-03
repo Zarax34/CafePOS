@@ -21,6 +21,14 @@ public partial class ReturnsView : UserControl
     public ReturnsView()
     {
         InitializeComponent();
+
+        if (AuthService.CurrentUser?.IsCashier == true && !SettingsService.IsReturnsEnabled())
+        {
+            ProcessPanel.Visibility = Visibility.Collapsed;
+            SearchPanel.Visibility = Visibility.Collapsed;
+            ReturnsDisabledMessage.Visibility = Visibility.Visible;
+        }
+
         LoadRecentReturns();
     }
 

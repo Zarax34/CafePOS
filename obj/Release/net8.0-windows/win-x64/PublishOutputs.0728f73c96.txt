@@ -1,0 +1,8 @@
+E:\my-projects\cafe-system\publish-output\CafePOS.pdb
+E:\my-projects\cafe-system\publish-output\D3DCompiler_47_cor3.dll
+E:\my-projects\cafe-system\publish-output\PenImc_cor3.dll
+E:\my-projects\cafe-system\publish-output\PresentationNative_cor3.dll
+E:\my-projects\cafe-system\publish-output\vcruntime140_cor3.dll
+E:\my-projects\cafe-system\publish-output\wpfgfx_cor3.dll
+E:\my-projects\cafe-system\publish-output\e_sqlite3.dll
+E:\my-projects\cafe-system\publish-output\CafePOS.exe

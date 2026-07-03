@@ -53,6 +53,7 @@
             <ComboBox x:Name="RoleCombo" FontSize="14" FontFamily="{StaticResource AppFont}"
                       Padding="10,8" Margin="0,0,0,25" SelectedIndex="0">
                 <ComboBoxItem Content="كاشير (صلاحيات بيع)" Tag="cashier"/>
+                <ComboBoxItem Content="مدير محل (إدارة منتجات ومشتريات)" Tag="storemanager"/>
                 <ComboBoxItem Content="مدير (صلاحيات كاملة)" Tag="manager"/>
             </ComboBox>
 
