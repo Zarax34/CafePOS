@@ -93,6 +93,7 @@ public static class PrintService
     private static readonly byte[] ESC_WIDE_ON = [0x1D, 0x21, 0x10];         // Double width only
     private static readonly byte[] ESC_WIDE_OFF = [0x1D, 0x21, 0x00];        // Normal
     private static readonly byte[] ESC_CUT = [0x1D, 0x56, 0x41, 0x03];       // Partial cut
+    private static readonly byte[] ESC_FEED2 = [0x1B, 0x64, 0x02];           // Feed 2 lines
     private static readonly byte[] ESC_FEED3 = [0x1B, 0x64, 0x03];           // Feed 3 lines
     private static readonly byte[] ESC_FEED5 = [0x1B, 0x64, 0x05];           // Feed 5 lines
     private static readonly byte[] ESC_CODEPAGE = [0x1B, 0x74, 0x16];        // Codepage 22 = Windows-1256 (Arabic)
@@ -110,7 +111,7 @@ public static class PrintService
     /// </summary>
     private static void PrintLogo(MemoryStream ms)
     {
-        var logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "logo.png");
+        var logoPath = CafePOS.Helpers.AppPaths.LogoPath;
         if (!File.Exists(logoPath)) return;
 
         try
@@ -202,6 +203,7 @@ public static class PrintService
 
     /// <summary>
     /// Prints an order receipt with a separate mini receipt attached.
+    /// Tries raster (image) mode first for Arabic RTL; falls back to text mode on failure.
     /// </summary>
     public static bool PrintReceipt(Order order)
     {
@@ -209,19 +211,98 @@ public static class PrintService
         if (string.IsNullOrWhiteSpace(printerName))
             printerName = "POS-80";
 
-        // Job 1: Main receipt
-        var mainData = BuildReceiptData(order);
-        var success = RawPrinterHelper.SendBytesToPrinter(printerName, mainData);
+        bool useRaster = SettingsService.GetSetting("raster_print") == "1" || string.IsNullOrWhiteSpace(SettingsService.GetSetting("raster_print"));
+        bool compact = SettingsService.GetSetting("compact_receipt") == "1";
 
-        // Job 2: Mini receipt (separate print job = separate cut)
-        var miniData = BuildMiniReceiptData(order);
-        success = RawPrinterHelper.SendBytesToPrinter(printerName, miniData) && success;
+        // Verify printer is reachable; if not, try to find any available printer
+        bool printerReachable = false;
+        try { printerReachable = RawPrinterHelper.SendBytesToPrinter(printerName, []); }
+        catch { }
+
+        if (!printerReachable)
+        {
+            try
+            {
+                var fallback = new LocalPrintServer().GetPrintQueues()
+                    .FirstOrDefault(q => !q.IsOffline && !string.IsNullOrWhiteSpace(q.FullName));
+                if (fallback != null)
+                    printerName = fallback.FullName;
+            }
+            catch { }
+        }
+
+        bool TrySend(byte[] data)
+        {
+            if (data.Length == 0) return false;
+            try { return RawPrinterHelper.SendBytesToPrinter(printerName, data); }
+            catch { return false; }
+        }
+
+        bool success = false;
+
+        if (useRaster)
+        {
+            try
+            {
+                var mainData = BuildReceiptRasterData(order);
+                success = TrySend(mainData);
+
+                if (success && !compact)
+                {
+                    var miniData = BuildMiniReceiptRasterData(order);
+                    TrySend(miniData);
+                }
+            }
+            catch
+            {
+                success = false;
+            }
+        }
+
+        if (!success)
+        {
+            var mainData = BuildReceiptData(order);
+            success = TrySend(mainData);
+
+            if (!compact)
+            {
+                var miniData = BuildMiniReceiptData(order);
+                TrySend(miniData);
+            }
+        }
 
         return success;
     }
 
     /// <summary>
-    /// Prints a return receipt.
+    /// Prints a simple test page to the specified printer using the raster pipeline.
+    /// </summary>
+    public static bool TestPrinter(string printerName)
+    {
+        var lines = new List<(string Text, int FontSize, bool Bold, StringFormat Align, bool HasBorder)>
+        {
+            ("** اختبار الطباعة **", HEADER_FONT_SIZE, true, CENTER_FORMAT, false),
+            ("", FONT_SIZE, false, CENTER_FORMAT, false),
+            ("إذا رأيت هذه الرسالة", FONT_SIZE, false, CENTER_FORMAT, false),
+            ("فالطابعة تعمل بشكل صحيح ✓", FONT_SIZE, true, CENTER_FORMAT, false),
+            ("", FONT_SIZE, false, CENTER_FORMAT, false),
+            (new string('-', LINE_WIDTH), FONT_SIZE, false, CENTER_FORMAT, false),
+            (DateTime.Now.ToString("yyyy-MM-dd HH:mm"), FONT_SIZE, false, CENTER_FORMAT, false),
+        };
+
+        try
+        {
+            var data = RasterRender(lines);
+            return RawPrinterHelper.SendBytesToPrinter(printerName, data);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Prints a return receipt. Uses raster mode for correct Arabic rendering.
     /// </summary>
     public static bool PrintReturnReceipt(Return ret)
     {
@@ -229,8 +310,37 @@ public static class PrintService
         if (string.IsNullOrWhiteSpace(printerName))
             printerName = "POS-80";
 
-        var data = BuildReturnReceiptData(ret);
-        return RawPrinterHelper.SendBytesToPrinter(printerName, data);
+        bool useRaster = SettingsService.GetSetting("raster_print") == "1" || string.IsNullOrWhiteSpace(SettingsService.GetSetting("raster_print"));
+
+        if (useRaster)
+        {
+            var data = BuildReturnReceiptRasterData(ret);
+            return RawPrinterHelper.SendBytesToPrinter(printerName, data);
+        }
+
+        var dataText = BuildReturnReceiptData(ret);
+        return RawPrinterHelper.SendBytesToPrinter(printerName, dataText);
+    }
+
+    /// <summary>
+    /// Prints a purchase invoice. Uses raster mode for correct Arabic rendering.
+    /// </summary>
+    public static bool PrintPurchaseReceipt(Purchase purchase)
+    {
+        var printerName = ResolvePrinterName();
+        if (string.IsNullOrWhiteSpace(printerName))
+            printerName = "POS-80";
+
+        bool useRaster = SettingsService.GetSetting("raster_print") == "1" || string.IsNullOrWhiteSpace(SettingsService.GetSetting("raster_print"));
+
+        if (useRaster)
+        {
+            var data = BuildPurchaseReceiptRasterData(purchase);
+            return RawPrinterHelper.SendBytesToPrinter(printerName, data);
+        }
+
+        var dataText = BuildPurchaseReceiptData(purchase);
+        return RawPrinterHelper.SendBytesToPrinter(printerName, dataText);
     }
 
     private static byte[] BuildReceiptData(Order order)
@@ -293,6 +403,12 @@ public static class PrintService
         ms.Write(enc.GetBytes($"الكاشير: {order.CashierName ?? AuthService.CurrentUser?.Username ?? ""}"));
         ms.Write(LF);
 
+        if (!string.IsNullOrWhiteSpace(order.PaymentMethod))
+        {
+            ms.Write(enc.GetBytes($"طريقة الدفع: {order.PaymentMethod}"));
+            ms.Write(LF);
+        }
+
         WriteDashes(ms, enc);
 
         // --- Items Header ---
@@ -350,7 +466,7 @@ public static class PrintService
         }
 
         // Feed and cut
-        ms.Write(ESC_FEED5);
+        ms.Write(ESC_FEED2);
         ms.Write(ESC_CUT);
 
         return ms.ToArray();
@@ -394,6 +510,12 @@ public static class PrintService
             ms.Write(ESC_BOLD_OFF);
         }
 
+        if (!string.IsNullOrWhiteSpace(order.PaymentMethod))
+        {
+            ms.Write(enc.GetBytes($"طريقة الدفع: {order.PaymentMethod}"));
+            ms.Write(LF);
+        }
+
         ms.Write(enc.GetBytes(new string('-', LINE_WIDTH)));
         ms.Write(LF);
 
@@ -425,7 +547,7 @@ public static class PrintService
         ms.Write(enc.GetBytes(new string('=', LINE_WIDTH)));
         ms.Write(LF);
 
-        ms.Write(ESC_FEED3);
+        ms.Write(ESC_FEED2);
         ms.Write(ESC_CUT);
 
         return ms.ToArray();
@@ -472,7 +594,390 @@ public static class PrintService
         ms.Write(LF);
         ms.Write(ESC_DOUBLE_OFF);
 
-        ms.Write(ESC_FEED5);
+        ms.Write(ESC_FEED2);
+        ms.Write(ESC_CUT);
+
+        return ms.ToArray();
+    }
+
+    private static byte[] BuildPurchaseReceiptData(Purchase purchase)
+    {
+        var enc = GetArabicEncoding();
+        using var ms = new MemoryStream();
+
+        ms.Write(ESC_INIT);
+        ms.Write(ESC_CODEPAGE);
+
+        // Header
+        ms.Write(ESC_CENTER);
+
+        var cafeName = SettingsService.GetSetting("cafe_name");
+        if (!string.IsNullOrWhiteSpace(cafeName))
+        {
+            ms.Write(ESC_DOUBLE_ON);
+            ms.Write(enc.GetBytes(cafeName));
+            ms.Write(LF);
+            ms.Write(ESC_DOUBLE_OFF);
+        }
+
+        var phone = SettingsService.GetSetting("phone");
+        if (!string.IsNullOrWhiteSpace(phone))
+        {
+            ms.Write(enc.GetBytes(phone));
+            ms.Write(LF);
+        }
+
+        WriteDashes(ms, enc);
+
+        ms.Write(ESC_BOLD_ON);
+        ms.Write(enc.GetBytes("** فاتورة مشتريات **"));
+        ms.Write(LF);
+        ms.Write(ESC_BOLD_OFF);
+
+        WriteDashes(ms, enc);
+
+        // Invoice Info
+        ms.Write(ESC_RIGHT);
+
+        ms.Write(ESC_BOLD_ON);
+        ms.Write(enc.GetBytes($"فاتورة رقم: {purchase.InvoiceNumber}"));
+        ms.Write(LF);
+        ms.Write(ESC_BOLD_OFF);
+
+        if (!string.IsNullOrWhiteSpace(purchase.SupplierName))
+        {
+            ms.Write(enc.GetBytes($"المورد: {purchase.SupplierName}"));
+            ms.Write(LF);
+        }
+
+        ms.Write(enc.GetBytes($"التاريخ: {purchase.CreatedAt:yyyy-MM-dd HH:mm}"));
+        ms.Write(LF);
+
+        ms.Write(enc.GetBytes($"المستخدم: {purchase.CreatorName ?? ""}"));
+        ms.Write(LF);
+
+        if (!string.IsNullOrWhiteSpace(purchase.Notes))
+        {
+            ms.Write(enc.GetBytes($"ملاحظات: {purchase.Notes}"));
+            ms.Write(LF);
+        }
+
+        WriteDashes(ms, enc);
+
+        // Items Header
+        ms.Write(ESC_BOLD_ON);
+        var header = FormatLine("الصنف", "الكمية", "التكلفة", "المجموع");
+        ms.Write(enc.GetBytes(header));
+        ms.Write(LF);
+        ms.Write(ESC_BOLD_OFF);
+
+        WriteDashes(ms, enc);
+
+        // Items
+        foreach (var item in purchase.Items)
+        {
+            var line = FormatLine(
+                item.ProductName,
+                item.Quantity.ToString(),
+                item.CostPrice.ToString("F2"),
+                item.Subtotal.ToString("F2")
+            );
+            ms.Write(enc.GetBytes(line));
+            ms.Write(LF);
+        }
+
+        WriteDashes(ms, enc);
+
+        // Total
+        ms.Write(ESC_RIGHT);
+        ms.Write(ESC_DOUBLE_ON);
+        ms.Write(enc.GetBytes(FormatTotalLine("الإجمالي:", purchase.Total.ToString("F2"))));
+        ms.Write(LF);
+        ms.Write(ESC_DOUBLE_OFF);
+
+        WriteDashes(ms, enc);
+
+        // Footer
+        ms.Write(ESC_CENTER);
+        var footer = SettingsService.GetSetting("footer");
+        if (!string.IsNullOrWhiteSpace(footer))
+        {
+            ms.Write(enc.GetBytes(footer));
+            ms.Write(LF);
+        }
+
+        ms.Write(ESC_FEED2);
+        ms.Write(ESC_CUT);
+
+        return ms.ToArray();
+    }
+
+    // ============================================================
+    // Raster Receipt Rendering (for correct Arabic RTL printing)
+    // Renders the receipt as a monochrome bitmap sent via GS v 0.
+    // ============================================================
+
+    private const int RASTER_WIDTH = 576;
+    private const int FONT_SIZE = 14;
+    private const int LINE_HEIGHT = 26;
+    private const int HEADER_LINE_HEIGHT = 40;
+    private const int HEADER_FONT_SIZE = 22;
+    private static readonly FontFamily RASTER_FONT = new("Segoe UI");
+
+    private static int GetLineHeight(int fontSize) => fontSize >= 16 ? HEADER_LINE_HEIGHT : LINE_HEIGHT;
+    private static readonly StringFormat RTL_FORMAT = new()
+    {
+        FormatFlags = StringFormatFlags.DirectionRightToLeft,
+        Alignment = StringAlignment.Near,
+        LineAlignment = StringAlignment.Center
+    };
+    private static readonly StringFormat CENTER_FORMAT = new()
+    {
+        FormatFlags = StringFormatFlags.DirectionRightToLeft,
+        Alignment = StringAlignment.Center,
+        LineAlignment = StringAlignment.Center
+    };
+    private static readonly StringFormat LEFT_FORMAT = new()
+    {
+        Alignment = StringAlignment.Near,
+        LineAlignment = StringAlignment.Center
+    };
+    private static readonly StringFormat RIGHT_FORMAT = new()
+    {
+        FormatFlags = StringFormatFlags.DirectionRightToLeft,
+        Alignment = StringAlignment.Far,
+        LineAlignment = StringAlignment.Center
+    };
+
+    private static byte[] BuildReceiptRasterData(Order order)
+    {
+        var lines = new List<(string Text, int FontSize, bool Bold, StringFormat Align, bool HasBorder)>();
+        var cafeName = SettingsService.GetSetting("cafe_name");
+        if (!string.IsNullOrWhiteSpace(cafeName))
+            lines.Add((cafeName, HEADER_FONT_SIZE, true, CENTER_FORMAT, false));
+
+        var phone = SettingsService.GetSetting("phone");
+        if (!string.IsNullOrWhiteSpace(phone))
+            lines.Add((phone, FONT_SIZE, false, CENTER_FORMAT, false));
+
+        lines.Add((new string('-', LINE_WIDTH), FONT_SIZE, false, CENTER_FORMAT, false));
+
+        lines.Add(($"فاتورة رقم: {order.InvoiceNumber}", FONT_SIZE, true, RTL_FORMAT, false));
+        lines.Add(($"رقم الطلب: {order.OrderNumber}", FONT_SIZE, false, RTL_FORMAT, false));
+        lines.Add(($"التاريخ: {order.CreatedAt:yyyy-MM-dd HH:mm}", FONT_SIZE, false, RTL_FORMAT, false));
+
+        if (!string.IsNullOrWhiteSpace(order.CustomerName))
+            lines.Add(($"العميل: {order.CustomerName}", FONT_SIZE, false, RTL_FORMAT, false));
+
+        lines.Add(($"الكاشير: {order.CashierName ?? AuthService.CurrentUser?.Username ?? ""}", FONT_SIZE, false, RTL_FORMAT, false));
+
+        if (!string.IsNullOrWhiteSpace(order.PaymentMethod))
+            lines.Add(($"طريقة الدفع: {order.PaymentMethod}", FONT_SIZE, false, RTL_FORMAT, false));
+
+        lines.Add((new string('-', LINE_WIDTH), FONT_SIZE, false, CENTER_FORMAT, false));
+
+        // Column header
+        var header = FormatLine("الصنف", "الكمية", "السعر", "المجموع");
+        lines.Add((header, FONT_SIZE, true, LEFT_FORMAT, false));
+        lines.Add((new string('-', LINE_WIDTH), FONT_SIZE, false, CENTER_FORMAT, false));
+
+        foreach (var item in order.Items)
+        {
+            var line = FormatLine(item.ProductName, item.Quantity.ToString(), item.Price.ToString("F2"), item.Subtotal.ToString("F2"));
+            lines.Add((line, FONT_SIZE, true, LEFT_FORMAT, true));
+        }
+
+        lines.Add((new string('-', LINE_WIDTH), FONT_SIZE, false, CENTER_FORMAT, false));
+        lines.Add((FormatTotalLine("المجموع الفرعي:", order.Subtotal.ToString("F2")), FONT_SIZE, false, RTL_FORMAT, false));
+
+        if (order.DiscountPercent > 0)
+            lines.Add((FormatTotalLine($"خصم ({order.DiscountPercent}%):", $"-{order.DiscountAmount:F2}"), FONT_SIZE, false, RTL_FORMAT, false));
+
+        lines.Add((new string('-', LINE_WIDTH), FONT_SIZE, false, CENTER_FORMAT, false));
+        lines.Add((FormatTotalLine("الإجمالي:", order.Total.ToString("F2")), HEADER_FONT_SIZE, true, RTL_FORMAT, false));
+        lines.Add((new string('-', LINE_WIDTH), FONT_SIZE, false, CENTER_FORMAT, false));
+
+        var footer = SettingsService.GetSetting("footer");
+        if (!string.IsNullOrWhiteSpace(footer))
+            lines.Add((footer, FONT_SIZE, false, CENTER_FORMAT, false));
+
+        var invert = SettingsService.GetSetting("invert_receipt_colors") == "1";
+        return RasterRender(lines, invert);
+    }
+
+    private static byte[] BuildMiniReceiptRasterData(Order order)
+    {
+        var lines = new List<(string Text, int FontSize, bool Bold, StringFormat Align, bool HasBorder)>();
+        lines.Add(("** فاتورة مصغرة **", HEADER_FONT_SIZE, true, CENTER_FORMAT, false));
+        lines.Add((new string('-', LINE_WIDTH), FONT_SIZE, false, CENTER_FORMAT, false));
+        lines.Add(($"رقم الطلب: {order.OrderNumber}", FONT_SIZE, false, RTL_FORMAT, true));
+        lines.Add(($"فاتورة رقم: {order.InvoiceNumber}", FONT_SIZE, false, RTL_FORMAT, true));
+        lines.Add(($"التاريخ: {order.CreatedAt:yyyy-MM-dd HH:mm}", FONT_SIZE, false, RTL_FORMAT, true));
+
+        if (!string.IsNullOrWhiteSpace(order.CustomerName))
+            lines.Add(($"العميل: {order.CustomerName}", FONT_SIZE, true, RTL_FORMAT, true));
+
+        if (!string.IsNullOrWhiteSpace(order.PaymentMethod))
+            lines.Add(($"طريقة الدفع: {order.PaymentMethod}", FONT_SIZE, false, RTL_FORMAT, true));
+
+        lines.Add((new string('-', LINE_WIDTH), FONT_SIZE, false, CENTER_FORMAT, false));
+
+        foreach (var item in order.Items)
+        {
+            lines.Add(($"{Truncate(item.ProductName, 20)}  x{item.Quantity}  {item.Subtotal:F2}", FONT_SIZE, false, LEFT_FORMAT, false));
+        }
+
+        lines.Add((new string('-', LINE_WIDTH), FONT_SIZE, false, CENTER_FORMAT, false));
+        lines.Add((FormatTotalLine("الإجمالي:", order.Total.ToString("F2")), FONT_SIZE, true, RTL_FORMAT, false));
+
+        var cafeName = SettingsService.GetSetting("cafe_name");
+        if (!string.IsNullOrWhiteSpace(cafeName))
+            lines.Add((cafeName, FONT_SIZE, false, CENTER_FORMAT, false));
+
+        lines.Add((new string('=', LINE_WIDTH), FONT_SIZE, false, CENTER_FORMAT, false));
+
+        var invert = SettingsService.GetSetting("invert_receipt_colors") == "1";
+        return RasterRender(lines, invert);
+    }
+
+    private static byte[] BuildReturnReceiptRasterData(Return ret)
+    {
+        var lines = new List<(string Text, int FontSize, bool Bold, StringFormat Align, bool HasBorder)>();
+        lines.Add(("** إيصال مرتجع **", HEADER_FONT_SIZE, true, CENTER_FORMAT, false));
+        lines.Add((new string('-', LINE_WIDTH), FONT_SIZE, false, CENTER_FORMAT, false));
+        lines.Add(($"فاتورة أصلية: {ret.InvoiceNumber}", FONT_SIZE, false, RTL_FORMAT, true));
+        lines.Add(($"السبب: {ret.Reason}", FONT_SIZE, false, RTL_FORMAT, true));
+        lines.Add(($"التاريخ: {ret.CreatedAt:yyyy-MM-dd HH:mm}", FONT_SIZE, false, RTL_FORMAT, true));
+        lines.Add((new string('-', LINE_WIDTH), FONT_SIZE, false, CENTER_FORMAT, false));
+
+        foreach (var item in ret.Items)
+        {
+            lines.Add(($"{item.ProductName} x{item.Quantity} = {item.Subtotal:F2}", FONT_SIZE, false, LEFT_FORMAT, false));
+        }
+
+        lines.Add((new string('-', LINE_WIDTH), FONT_SIZE, false, CENTER_FORMAT, false));
+        lines.Add((FormatTotalLine("المبلغ المسترد:", ret.TotalRefund.ToString("F2")), HEADER_FONT_SIZE, true, RTL_FORMAT, false));
+
+        var invert = SettingsService.GetSetting("invert_receipt_colors") == "1";
+        return RasterRender(lines, invert);
+    }
+
+    private static byte[] BuildPurchaseReceiptRasterData(Purchase purchase)
+    {
+        var lines = new List<(string Text, int FontSize, bool Bold, StringFormat Align, bool HasBorder)>();
+        var cafeName = SettingsService.GetSetting("cafe_name");
+        if (!string.IsNullOrWhiteSpace(cafeName))
+            lines.Add((cafeName, HEADER_FONT_SIZE, true, CENTER_FORMAT, false));
+
+        var phone = SettingsService.GetSetting("phone");
+        if (!string.IsNullOrWhiteSpace(phone))
+            lines.Add((phone, FONT_SIZE, false, CENTER_FORMAT, false));
+
+        lines.Add((new string('-', LINE_WIDTH), FONT_SIZE, false, CENTER_FORMAT, false));
+
+        lines.Add(("** فاتورة مشتريات **", FONT_SIZE, true, CENTER_FORMAT, false));
+        lines.Add((new string('-', LINE_WIDTH), FONT_SIZE, false, CENTER_FORMAT, false));
+
+        lines.Add(($"فاتورة رقم: {purchase.InvoiceNumber}", FONT_SIZE, true, RTL_FORMAT, true));
+
+        if (!string.IsNullOrWhiteSpace(purchase.SupplierName))
+            lines.Add(($"المورد: {purchase.SupplierName}", FONT_SIZE, false, RTL_FORMAT, true));
+
+        lines.Add(($"التاريخ: {purchase.CreatedAt:yyyy-MM-dd HH:mm}", FONT_SIZE, false, RTL_FORMAT, true));
+        lines.Add(($"المستخدم: {purchase.CreatorName ?? ""}", FONT_SIZE, false, RTL_FORMAT, true));
+
+        if (!string.IsNullOrWhiteSpace(purchase.Notes))
+            lines.Add(($"ملاحظات: {purchase.Notes}", FONT_SIZE, false, RTL_FORMAT, true));
+
+        lines.Add((new string('-', LINE_WIDTH), FONT_SIZE, false, CENTER_FORMAT, false));
+
+        // Column header
+        var header = FormatLine("الصنف", "الكمية", "التكلفة", "المجموع");
+        lines.Add((header, FONT_SIZE, true, LEFT_FORMAT, false));
+        lines.Add((new string('-', LINE_WIDTH), FONT_SIZE, false, CENTER_FORMAT, false));
+
+        foreach (var item in purchase.Items)
+        {
+            var line = FormatLine(item.ProductName, item.Quantity.ToString(), item.CostPrice.ToString("F2"), item.Subtotal.ToString("F2"));
+            lines.Add((line, FONT_SIZE, false, LEFT_FORMAT, false));
+        }
+
+        lines.Add((new string('-', LINE_WIDTH), FONT_SIZE, false, CENTER_FORMAT, false));
+        lines.Add((FormatTotalLine("الإجمالي:", purchase.Total.ToString("F2")), HEADER_FONT_SIZE, true, RTL_FORMAT, false));
+        lines.Add((new string('-', LINE_WIDTH), FONT_SIZE, false, CENTER_FORMAT, false));
+
+        var footer = SettingsService.GetSetting("footer");
+        if (!string.IsNullOrWhiteSpace(footer))
+            lines.Add((footer, FONT_SIZE, false, CENTER_FORMAT, false));
+
+        var invert = SettingsService.GetSetting("invert_receipt_colors") == "1";
+        return RasterRender(lines, invert);
+    }
+
+    private static byte[] RasterRender(List<(string Text, int FontSize, bool Bold, StringFormat Align, bool HasBorder)> lines, bool invert = false)
+    {
+        const int topPadding = 0;
+        int totalHeight = topPadding;
+        foreach (var (_, fontSize, _, _, _) in lines)
+            totalHeight += GetLineHeight(fontSize);
+
+        using var bmp = new Bitmap(RASTER_WIDTH, totalHeight);
+        using var g = Graphics.FromImage(bmp);
+        g.Clear(invert ? Color.White : Color.Black);
+        g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.SingleBitPerPixelGridFit;
+
+        var textBrush = invert ? Brushes.Black : Brushes.White;
+        var borderPenColor = invert ? Color.Black : Color.White;
+
+        int y = topPadding;
+        foreach (var (text, fontSize, bold, format, hasBorder) in lines)
+        {
+            int lh = GetLineHeight(fontSize);
+            if (hasBorder)
+            {
+                using var pen = new Pen(borderPenColor, 1);
+                g.DrawRectangle(pen, 0, y + 1, RASTER_WIDTH - 1, lh - 3);
+            }
+            using var font = new Font(RASTER_FONT, fontSize, bold ? FontStyle.Bold : FontStyle.Regular, GraphicsUnit.Point);
+            g.DrawString(text, font, textBrush, new RectangleF(0, y, RASTER_WIDTH, lh), format);
+            y += lh;
+        }
+
+        // Convert to 1bpp monochrome for thermal printer
+        int w = RASTER_WIDTH;
+        int h = totalHeight;
+        int widthBytes = (w + 7) / 8;
+        byte[] imageData = new byte[widthBytes * h];
+
+        for (int yy = 0; yy < h; yy++)
+        {
+            for (int xx = 0; xx < w; xx++)
+            {
+                var px = bmp.GetPixel(xx, yy);
+                int gray = (px.R * 77 + px.G * 150 + px.B * 29) >> 8;
+                if (gray < 128)
+                {
+                    int bi = yy * widthBytes + (xx >> 3);
+                    imageData[bi] |= (byte)(0x80 >> (xx & 7));
+                }
+            }
+        }
+
+        using var ms = new MemoryStream();
+        ms.Write(ESC_INIT);
+
+        // GS v 0 — Print raster bit image (m=0 normal mode for broad compatibility)
+        ms.Write([
+            0x1D, 0x76, 0x30, 0,
+            (byte)(widthBytes & 0xFF),
+            (byte)((widthBytes >> 8) & 0xFF),
+            (byte)(h & 0xFF),
+            (byte)((h >> 8) & 0xFF)
+        ]);
+        ms.Write(imageData);
+        ms.Write(LF);
+
+        // Cut immediately (no extra bottom margin)
         ms.Write(ESC_CUT);
 
         return ms.ToArray();

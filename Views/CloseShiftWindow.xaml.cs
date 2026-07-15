@@ -42,6 +42,7 @@ public partial class CloseShiftWindow : Window
     {
         decimal sales = 0;
         decimal returns = 0;
+        decimal expenses = 0;
 
         using var connection = DatabaseContext.GetConnection();
         connection.Open();
@@ -66,7 +67,17 @@ public partial class CloseShiftWindow : Window
             returns = (decimal)Convert.ToDouble(cmd.ExecuteScalar());
         }
 
-        return sales - returns;
+        using (var cmd = connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                SELECT COALESCE(SUM(Amount), 0) FROM expenses
+                WHERE CashierId = @cashier AND CreatedAt >= @start;";
+            cmd.Parameters.AddWithValue("@cashier", _cashier.Id);
+            cmd.Parameters.AddWithValue("@start", start.ToString("yyyy-MM-dd HH:mm:ss"));
+            expenses = (decimal)Convert.ToDouble(cmd.ExecuteScalar());
+        }
+
+        return sales - returns - expenses;
     }
 
     private void ActualCashBox_KeyDown(object sender, KeyEventArgs e)

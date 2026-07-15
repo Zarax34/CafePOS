@@ -124,7 +124,7 @@ public static class ProductService
     }
 
     /// <summary>
-    /// Gets ALL active products including purchase-only (for PurchasesView).
+    /// Gets active purchase-only products (for PurchasesView).
     /// </summary>
     public static List<Product> GetAllPurchaseProducts()
     {
@@ -138,7 +138,7 @@ public static class ProductService
                    p.ImagePath, p.IsActive, p.SortOrder, p.IsPurchaseOnly
             FROM products p
             LEFT JOIN categories c ON p.CategoryId = c.Id
-            WHERE p.IsActive = 1
+            WHERE p.IsActive = 1 AND p.IsPurchaseOnly = 1
             ORDER BY p.SortOrder, p.Name;
         ";
 

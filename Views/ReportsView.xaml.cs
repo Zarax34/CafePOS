@@ -42,6 +42,11 @@ public partial class ReportsView : UserControl
         return ReportDatePicker.SelectedDate ?? DateTime.Now;
     }
 
+    private void SingleDayReport_Click(object sender, RoutedEventArgs e)
+    {
+        LoadSingleDayReport();
+    }
+
     private void DailyReport_Click(object sender, RoutedEventArgs e)
     {
         LoadDailyReport();
@@ -191,8 +196,36 @@ public partial class ReportsView : UserControl
             ws.Cell(summaryRow + 7, 1).Value = "عدد الفواتير";
             ws.Cell(summaryRow + 7, 2).Value = report.OrderCount;
 
+            // Payment method breakdown section
+            var pmtRow = summaryRow + 7;
+            var pmtBreakdown = ReportService.GetPaymentMethodBreakdown(from, to);
+            if (pmtBreakdown.Count > 0)
+            {
+                ws.Cell(pmtRow, 1).Value = "المبيعات حسب طريقة الدفع";
+                ws.Cell(pmtRow, 1).Style.Font.Bold = true;
+                ws.Cell(pmtRow, 1).Style.Font.FontSize = 14;
+                ws.Range(pmtRow, 1, pmtRow, 3).Merge();
+
+                ws.Cell(pmtRow + 1, 1).Value = "طريقة الدفع";
+                ws.Cell(pmtRow + 1, 2).Value = "عدد الفواتير";
+                ws.Cell(pmtRow + 1, 3).Value = "الإيرادات";
+
+                var pmtHeader = ws.Range(pmtRow + 1, 1, pmtRow + 1, 3);
+                pmtHeader.Style.Font.Bold = true;
+                pmtHeader.Style.Fill.BackgroundColor = XLColor.FromArgb(0x8D6E63);
+                pmtHeader.Style.Font.FontColor = XLColor.White;
+
+                for (int i = 0; i < pmtBreakdown.Count; i++)
+                {
+                    ws.Cell(pmtRow + 2 + i, 1).Value = pmtBreakdown[i].PaymentMethod;
+                    ws.Cell(pmtRow + 2 + i, 2).Value = pmtBreakdown[i].OrderCount;
+                    ws.Cell(pmtRow + 2 + i, 3).Value = (double)pmtBreakdown[i].TotalRevenue;
+                    ws.Cell(pmtRow + 2 + i, 3).Style.NumberFormat.NumberFormatId = 4;
+                }
+            }
+
             // Top products section
-            var topRow = summaryRow + 7;
+            var topRow = pmtRow + (pmtBreakdown.Count > 0 ? pmtBreakdown.Count + 4 : 0);
             ws.Cell(topRow, 1).Value = "المنتجات الأكثر مبيعاً";
             ws.Cell(topRow, 1).Style.Font.Bold = true;
             ws.Cell(topRow, 1).Style.Font.FontSize = 14;
@@ -373,12 +406,22 @@ public partial class ReportsView : UserControl
         }
     }
 
+    private void LoadSingleDayReport()
+    {
+        var date = GetSelectedDate();
+        var report = ReportService.GetDailySalesReport(date);
+        ReportTitle.Text = $"تقرير يوم واحد ({date:yyyy-MM-dd})";
+        DisplayReport(report);
+        LoadPaymentMethodBreakdown(date.ToString("yyyy-MM-dd 00:00:00"), date.ToString("yyyy-MM-dd 23:59:59"));
+    }
+
     private void LoadDailyReport()
     {
         var date = GetSelectedDate();
         var report = ReportService.Get30DaySalesReport(date);
         ReportTitle.Text = $"تقرير 30 يوم ({date:yyyy-MM-dd} إلى {date.AddDays(29):yyyy-MM-dd})";
         DisplayReport(report);
+        LoadPaymentMethodBreakdown(date.ToString("yyyy-MM-dd 00:00:00"), date.AddDays(29).ToString("yyyy-MM-dd 23:59:59"));
     }
 
     private void LoadMonthlyReport()
@@ -387,6 +430,17 @@ public partial class ReportsView : UserControl
         var report = ReportService.GetMonthlySalesReport(date.Year, date.Month);
         ReportTitle.Text = $"تقرير مبيعات الشهر ({date:yyyy-MM})";
         DisplayReport(report);
+        var lastDay = DateTime.DaysInMonth(date.Year, date.Month);
+        var from = new DateTime(date.Year, date.Month, 1).ToString("yyyy-MM-dd 00:00:00");
+        var to = new DateTime(date.Year, date.Month, lastDay).ToString("yyyy-MM-dd 23:59:59");
+        LoadPaymentMethodBreakdown(from, to);
+    }
+
+    private void LoadPaymentMethodBreakdown(string from, string to)
+    {
+        var breakdown = ReportService.GetPaymentMethodBreakdown(from, to);
+        PaymentMethodList.ItemsSource = breakdown;
+        PaymentMethodPanel.Visibility = breakdown.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void DisplayReport(SalesReport report)
@@ -395,6 +449,7 @@ public partial class ReportsView : UserControl
         TotalDiscountsText.Text = $"-{report.TotalDiscounts:F2} ر.ي";
         TotalReturnsText.Text = $"-{report.TotalReturns:F2} ر.ي";
         TotalPurchasesText.Text = $"-{report.TotalPurchases:F2} ر.ي";
+        TotalExpensesText.Text = $"-{report.TotalExpenses:F2} ر.ي";
         NetCashText.Text = $"{report.NetCash:F2} ر.ي";
         NetProfitText.Text = $"{report.NetProfit:F2} ر.ي";
         OrderCountText.Text = $"عدد الفواتير: {report.OrderCount}";

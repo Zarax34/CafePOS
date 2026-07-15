@@ -89,6 +89,100 @@
                                       Text="اختيار طابعة..." IsEditable="True"/>
                         </DockPanel>
                         <TextBlock x:Name="PrinterStatusText" FontSize="11" Foreground="#999" Margin="0,0,0,5"/>
+                        <Button x:Name="BtnTestPrint" Content="🖨 اختبار الطباعة"
+                                FontSize="12" Padding="12,6" Cursor="Hand"
+                                Click="TestPrint_Click" Margin="0,0,0,0">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="bg" Background="#EFEBE9" CornerRadius="6"
+                                            Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="bg" Property="Background" Value="#D7CCC8"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <!-- License Activation Section -->
+                <Border x:Name="LicenseSection" Background="White" CornerRadius="16" Padding="25" Margin="0,0,0,15">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.08"/>
+                    </Border.Effect>
+                    <StackPanel>
+                        <TextBlock Text="🔑 الترخيص" FontSize="17" FontWeight="Bold"
+                                   Foreground="{StaticResource PrimaryBrownBrush}" Margin="0,0,0,15"/>
+
+                        <DockPanel Margin="0,0,0,8">
+                            <TextBlock Text="حالة الترخيص:" FontSize="14"
+                                       VerticalAlignment="Center" Foreground="#555"/>
+                            <TextBlock x:Name="LicenseStatusText" Text="غير نشط"
+                                       FontSize="14" FontWeight="Bold"
+                                       Foreground="{StaticResource ErrorRedBrush}"
+                                       Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </DockPanel>
+
+                        <DockPanel Margin="0,0,0,4" Visibility="Collapsed">
+                            <TextBlock Text="الفترة التجريبية:" FontSize="13"
+                                       VerticalAlignment="Center" Foreground="#555"/>
+                            <TextBlock x:Name="LicenseTrialText" FontSize="13"
+                                       Foreground="{StaticResource AccentCopperBrush}"
+                                       Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </DockPanel>
+
+                        <TextBlock Text="رقم الجهاز:" FontSize="12" Foreground="#888" Margin="0,8,0,2"/>
+                        <Border Background="#FAFAFA" BorderBrush="#EEE" BorderThickness="1"
+                                CornerRadius="6" Padding="10,6" Margin="0,0,0,12">
+                            <DockPanel>
+                                <Button DockPanel.Dock="Left" Content="نسخ"
+                                        Click="CopyHwId_Click"
+                                        Padding="10,4" Margin="8,0,0,0"
+                                        FontSize="12" Cursor="Hand">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="bg" Background="{StaticResource AccentCopperBrush}"
+                                                    CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter HorizontalAlignment="Center"
+                                                                  VerticalAlignment="Center"
+                                                                  TextElement.Foreground="White"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="bg" Property="Background"
+                                                            Value="{StaticResource LightCopperBrush}"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                                <TextBlock x:Name="HardwareIdText"
+                                           FontSize="14" FontWeight="Bold"
+                                           Foreground="{StaticResource PrimaryBrownBrush}"
+                                           VerticalAlignment="Center"
+                                           FlowDirection="LeftToRight"
+                                           FontFamily="Consolas"/>
+                            </DockPanel>
+                        </Border>
+
+                        <TextBlock Text="مفتاح التفعيل:" FontSize="13" FontWeight="SemiBold"
+                                   Foreground="#555" Margin="0,0,0,6"/>
+                        <DockPanel>
+                            <Button Content="تفعيل"
+                                    Style="{StaticResource PrimaryButton}"
+                                    Click="ActivateLicense_Click"
+                                    FontSize="14" Padding="20,8" Height="40"
+                                    DockPanel.Dock="Left" Margin="0,0,8,0"/>
+                            <TextBox x:Name="LicenseKeyBox"
+                                     Style="{StaticResource RoundedTextBox}"
+                                     FontSize="13" FontFamily="Consolas"
+                                     FlowDirection="LeftToRight"
+                                     Height="40"/>
+                        </DockPanel>
                     </StackPanel>
                 </Border>
 
@@ -118,6 +212,104 @@
                         <TextBox x:Name="DiscountPercentBox" Style="{StaticResource RoundedTextBox}"
                                  FontSize="14" FlowDirection="LeftToRight" Width="120"
                                  HorizontalAlignment="Right"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Printing Settings Section -->
+                <Border Background="White" CornerRadius="16" Padding="25" Margin="0,0,0,15">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.08"/>
+                    </Border.Effect>
+                    <StackPanel>
+                        <TextBlock Text="إعدادات الطباعة" FontSize="17" FontWeight="Bold"
+                                   Foreground="{StaticResource PrimaryBrownBrush}" Margin="0,0,0,15"/>
+
+                        <DockPanel Margin="0,0,0,10">
+                            <TextBlock Text="طباعة كصورة نقطية (للمحافظة على اتجاه الحروف العربية)"
+                                       FontSize="14" VerticalAlignment="Center" Foreground="#555"
+                                       TextWrapping="Wrap"/>
+                            <CheckBox x:Name="RasterPrintCheck"
+                                      HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,0,0,0"
+                                      ToolTip="ينصح بتفعيله للطابعات الحرارية العربية">
+                                <CheckBox.LayoutTransform>
+                                    <ScaleTransform ScaleX="1.3" ScaleY="1.3"/>
+                                </CheckBox.LayoutTransform>
+                            </CheckBox>
+                        </DockPanel>
+                        <TextBlock FontSize="11" Foreground="#999" Margin="22,-5,0,5">
+                            عند تفعيله، ستُطبع الفاتورة كصورة لتعرض الحروف العربية بشكل صحيح
+                        </TextBlock>
+
+                        <DockPanel Margin="0,0,0,5">
+                            <TextBlock Text="إخفاء الفاتورة المصغرة (فاتورة مختصرة)"
+                                       FontSize="14" VerticalAlignment="Center" Foreground="#555"/>
+                            <CheckBox x:Name="CompactReceiptCheck"
+                                      HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,0,0,0">
+                                <CheckBox.LayoutTransform>
+                                    <ScaleTransform ScaleX="1.3" ScaleY="1.3"/>
+                                </CheckBox.LayoutTransform>
+                            </CheckBox>
+                        </DockPanel>
+                        <TextBlock FontSize="11" Foreground="#999" Margin="22,-5,0,5">
+                            عند التفعيل، ستُطبع فاتورة رئيسية فقط بدون الفاتورة المصغرة الملحقة
+                        </TextBlock>
+
+                        <DockPanel Margin="0,0,0,5">
+                            <TextBlock Text="عكس ألوان الفاتورة (أبيض بخلفية سوداء)"
+                                       FontSize="14" VerticalAlignment="Center" Foreground="#555"/>
+                            <CheckBox x:Name="InvertColorsCheck"
+                                      HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,0,0,0">
+                                <CheckBox.LayoutTransform>
+                                    <ScaleTransform ScaleX="1.3" ScaleY="1.3"/>
+                                </CheckBox.LayoutTransform>
+                            </CheckBox>
+                        </DockPanel>
+                        <TextBlock FontSize="11" Foreground="#999" Margin="22,-5,0,0">
+                            عند التفعيل، تُطبع الفاتورة بخلفية سوداء وكتابة بيضاء (للوضع الليلي)
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+
+                <!-- Payment Methods Section -->
+                <Border Background="White" CornerRadius="16" Padding="25" Margin="0,0,0,15">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.08"/>
+                    </Border.Effect>
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,15">
+                            <TextBlock Text="طرق الدفع" FontSize="17" FontWeight="Bold"
+                                       Foreground="{StaticResource PrimaryBrownBrush}"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                <Button Content="+ إضافة طريقة" Style="{StaticResource AccentButton}"
+                                        Click="AddPaymentMethod_Click" Margin="0,0,8,0"/>
+                                <Button Content="حذف المحدد" Style="{StaticResource DangerButton}"
+                                        Click="DeletePaymentMethod_Click" Padding="12,6" FontSize="12"/>
+                            </StackPanel>
+                        </DockPanel>
+
+                        <ListView x:Name="PaymentMethodsList" BorderThickness="0" Background="Transparent"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled" MaxHeight="200">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Padding="12,8" Margin="0,2" Background="#FAFAFA" CornerRadius="8">
+                                        <TextBlock Text="{Binding Name}" FontSize="14"/>
+                                    </Border>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                            <ListView.ItemContainerStyle>
+                                <Style TargetType="ListViewItem">
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                    <Setter Property="Padding" Value="0"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="ListViewItem">
+                                                <ContentPresenter/>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </ListView.ItemContainerStyle>
+                        </ListView>
                     </StackPanel>
                 </Border>
 

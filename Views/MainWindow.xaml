@@ -10,7 +10,7 @@
         FontFamily="{StaticResource AppFont}">
 
     <WindowChrome.WindowChrome>
-        <WindowChrome CaptionHeight="60" ResizeBorderThickness="5" GlassFrameThickness="0" CornerRadius="0"/>
+        <WindowChrome CaptionHeight="30" ResizeBorderThickness="5" GlassFrameThickness="0" CornerRadius="0"/>
     </WindowChrome.WindowChrome>
 
     <Window.Resources>
@@ -65,9 +65,9 @@
 
     <DockPanel>
         <!-- Top Navigation Bar -->
-        <Border DockPanel.Dock="Top" Height="60"
+        <Border DockPanel.Dock="Top" Height="48"
                 Background="{StaticResource PrimaryBrownBrush}">
-            <Grid Margin="15,0">
+            <Grid Margin="12,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
@@ -77,9 +77,9 @@
                 <!-- Brand -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal"
                             VerticalAlignment="Center">
-                    <TextBlock Text="☕" FontSize="24" Foreground="White"
-                               VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <TextBlock Text="إدارة الكافيه الذكي" FontSize="18"
+                    <TextBlock Text="☕" FontSize="20" Foreground="White"
+                               VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <TextBlock Text="إدارة الكافيه الذكي" FontSize="16"
                                FontWeight="Bold" Foreground="White"
                                VerticalAlignment="Center"/>
                 </StackPanel>
@@ -110,20 +110,50 @@
                             Click="NavButton_Click" Tag="Purchases"
                             Margin="1,0"/>
 
-                    <Button x:Name="BtnReports" Content="📊 التقارير"
+                    <Button x:Name="BtnExpenses" Content="💸 المصروفات"
                             Style="{StaticResource NavButton}"
-                            Click="NavButton_Click" Tag="Reports"
+                            Click="NavButton_Click" Tag="Expenses"
                             Margin="1,0"/>
 
-                    <Button x:Name="BtnProducts" Content="📦 المنتجات"
-                            Style="{StaticResource NavButton}"
-                            Click="NavButton_Click" Tag="Products"
-                            Margin="1,0"/>
-
-                    <Button x:Name="BtnSettings" Content="⚙ الإعدادات"
-                            Style="{StaticResource NavButton}"
-                            Click="NavButton_Click" Tag="Settings"
-                            Margin="1,0"/>
+                    <!-- More button with popup -->
+                    <Grid Margin="1,0">
+                        <Button x:Name="MoreButton"
+                                Content="☰ المزيد"
+                                Style="{StaticResource NavButton}"
+                                Click="MoreButton_Click"
+                                Margin="1,0"/>
+                        <Popup x:Name="MorePopup"
+                               Placement="Bottom"
+                               PlacementTarget="{Binding ElementName=MoreButton}"
+                               StaysOpen="False"
+                               PopupAnimation="Slide"
+                               AllowsTransparency="True">
+                            <Border Background="White" CornerRadius="8"
+                                    BorderBrush="{StaticResource AccentCopperBrush}"
+                                    BorderThickness="1" Margin="0,4,0,0">
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.15"/>
+                                </Border.Effect>
+                                <StackPanel>
+                                    <Button x:Name="BtnReports" Content="📊 التقارير"
+                                            Style="{StaticResource NavPopupButton}"
+                                            Tag="Reports" Click="NavButton_Click"/>
+                                    <Button x:Name="BtnProducts" Content="📦 المنتجات"
+                                            Style="{StaticResource NavPopupButton}"
+                                            Tag="Products" Click="NavButton_Click"/>
+                                    <Button x:Name="BtnWorkers" Content="👥 العمال"
+                                            Style="{StaticResource NavPopupButton}"
+                                            Tag="Workers" Click="NavButton_Click"/>
+                                    <Button x:Name="BtnWorkerWithdrawals" Content="📊 سحبيات العمال"
+                                            Style="{StaticResource NavPopupButton}"
+                                            Tag="WorkerWithdrawals" Click="NavButton_Click"/>
+                                    <Button x:Name="BtnSettings" Content="⚙ الإعدادات"
+                                            Style="{StaticResource NavPopupButton}"
+                                            Tag="Settings" Click="NavButton_Click"/>
+                                </StackPanel>
+                            </Border>
+                        </Popup>
+                    </Grid>
                 </StackPanel>
 
                 <!-- User Info & Controls -->

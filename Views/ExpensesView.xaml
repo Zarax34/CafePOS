@@ -1,0 +1,185 @@
+<UserControl x:Class="CafePOS.Views.ExpensesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             FlowDirection="RightToLeft"
+             FontFamily="{StaticResource AppFont}">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header & Add Form -->
+        <Border Grid.Row="0" Background="White" CornerRadius="16" Padding="25" Margin="0,0,0,15">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.08"/>
+            </Border.Effect>
+            <StackPanel>
+                <TextBlock Text="💰 المصروفات"
+                           FontSize="24" FontWeight="Bold"
+                           Foreground="{StaticResource PrimaryBrownBrush}"
+                           Margin="0,0,0,20"/>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="160"/>
+                        <ColumnDefinition Width="160"/>
+                        <ColumnDefinition Width="160"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                        <TextBlock Text="الوصف" FontSize="12" Foreground="#888" Margin="0,0,0,4"/>
+                        <TextBox x:Name="DescriptionBox"
+                                 Style="{StaticResource RoundedTextBox}"
+                                 FontSize="14"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                        <TextBlock Text="النوع" FontSize="12" Foreground="#888" Margin="0,0,0,4"/>
+                        <ComboBox x:Name="ExpenseTypeCombo"
+                                  Style="{StaticResource RoundedComboBox}"
+                                  FontSize="13" Height="42"
+                                  SelectionChanged="ExpenseTypeCombo_SelectionChanged">
+                            <ComboBoxItem Content="سداد" IsSelected="True"/>
+                            <ComboBoxItem Content="سحبيات"/>
+                            <ComboBoxItem Content="سحبيات العمال"/>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Margin="0,0,8,0">
+                        <TextBlock Text="العامل" FontSize="12" Foreground="#888" Margin="0,0,0,4"/>
+                        <ComboBox x:Name="WorkerCombo"
+                                  Style="{StaticResource RoundedComboBox}"
+                                  FontSize="13" Height="42"
+                                  DisplayMemberPath="Name"
+                                  Visibility="Collapsed"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="3" Margin="0,0,8,0">
+                        <TextBlock Text="المبلغ (ر.ي)" FontSize="12" Foreground="#888" Margin="0,0,0,4"/>
+                        <TextBox x:Name="AmountBox"
+                                 Style="{StaticResource RoundedTextBox}"
+                                 FontSize="14" FlowDirection="LeftToRight"/>
+                    </StackPanel>
+                    <Button Grid.Column="4" Content="إضافة مصروف"
+                            Style="{StaticResource PrimaryButton}"
+                            FontSize="14" Height="42" Padding="25,0"
+                            VerticalAlignment="Bottom"
+                            Click="AddExpense_Click"/>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- Expenses DataGrid -->
+        <Border Grid.Row="1" Background="White" CornerRadius="16" Padding="25">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.08"/>
+            </Border.Effect>
+            <DockPanel>
+                <!-- Summary Bar -->
+                <Border DockPanel.Dock="Bottom" Background="{StaticResource PrimaryBrownBrush}" CornerRadius="10"
+                        Padding="15" Margin="0,15,0,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="ExpensesCountText"
+                                   Text="عدد المصروفات: 0" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="White" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1" x:Name="TotalExpensesText"
+                                   Text="الإجمالي: 0.00 ر.ي" FontSize="18" FontWeight="Bold"
+                                   Foreground="White" VerticalAlignment="Center"
+                                   FlowDirection="LeftToRight"/>
+                    </Grid>
+                </Border>
+
+                <DataGrid x:Name="ExpensesGrid" AutoGenerateColumns="False" IsReadOnly="True"
+                          BorderThickness="0" Background="Transparent"
+                          RowHeaderWidth="0" SelectionMode="Single"
+                          CanUserSortColumns="True" CanUserResizeColumns="True"
+                          HeadersVisibility="Column"
+                          FontSize="13"
+                          AlternationCount="2"
+                          GridLinesVisibility="None"
+                          Margin="0,0,0,5">
+                    <DataGrid.Resources>
+                        <Style TargetType="DataGridColumnHeader">
+                            <Setter Property="Background" Value="{StaticResource PrimaryBrownBrush}"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="FontSize" Value="13"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                            <Setter Property="Padding" Value="12,10"/>
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                        </Style>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="Padding" Value="12,8"/>
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="DataGridCell">
+                                        <Border Padding="{TemplateBinding Padding}"
+                                                Background="{TemplateBinding Background}"
+                                                BorderThickness="0">
+                                            <ContentPresenter VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="{StaticResource BackgroundBeigeBrush}"/>
+                                    <Setter Property="Foreground" Value="{StaticResource PrimaryBrownBrush}"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                        <Style TargetType="DataGridRow">
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                            <Setter Property="BorderBrush" Value="#F0EDEA"/>
+                            <Setter Property="MinHeight" Value="42"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#F5F2F0"/>
+                                </Trigger>
+                                <Trigger Property="AlternationIndex" Value="1">
+                                    <Setter Property="Background" Value="#FAFAFA"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.Resources>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="الوصف" Binding="{Binding Description}" Width="*"/>
+                        <DataGridTextColumn Header="النوع" Binding="{Binding ExpenseType}" Width="100"/>
+                        <DataGridTextColumn Header="العامل" Binding="{Binding WorkerName}" Width="120"/>
+                        <DataGridTextColumn Header="المبلغ" Binding="{Binding Amount, StringFormat={}{0:F2}}" Width="120">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                    <Setter Property="Foreground" Value="{StaticResource AccentCopperBrush}"/>
+                                    <Setter Property="FlowDirection" Value="LeftToRight"/>
+                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="الكاشير" Binding="{Binding CashierName}" Width="140"/>
+                        <DataGridTextColumn Header="التاريخ" Binding="{Binding CreatedAt, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}" Width="150"/>
+                        <DataGridTemplateColumn Header="" Width="60">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Content="✕" FontSize="12" Width="28" Height="28"
+                                            Cursor="Hand" Tag="{Binding}"
+                                            Click="DeleteExpense_Click"
+                                            Background="{StaticResource ErrorRedBrush}"
+                                            Foreground="White" BorderThickness="0"
+                                            HorizontalAlignment="Center"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

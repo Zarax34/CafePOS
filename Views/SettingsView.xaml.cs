@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Printing;
 using System.Windows;
@@ -17,8 +18,10 @@ public partial class SettingsView : UserControl
     public SettingsView()
     {
         InitializeComponent();
+        LoadLicenseInfo();
         LoadSettings();
         LoadUsers();
+        LoadPaymentMethods();
     }
 
     private static BitmapImage? LoadImageSafe(string path)
@@ -38,6 +41,72 @@ public partial class SettingsView : UserControl
         catch { return null; }
     }
 
+    private void LoadLicenseInfo()
+    {
+        try
+        {
+            var isLicensed = LicenseService.IsLicensed();
+            if (isLicensed)
+            {
+                LicenseStatusText.Text = "✅ نشط";
+                LicenseStatusText.Foreground = FindResource("SuccessGreenBrush") as System.Windows.Media.SolidColorBrush;
+                LicenseKeyBox.IsEnabled = false;
+            }
+            else
+            {
+                var remaining = LicenseService.GetTrialDaysRemaining();
+                if (remaining > 0)
+                {
+                    LicenseStatusText.Text = "⚠ تجريبي";
+                    LicenseStatusText.Foreground = FindResource("AccentCopperBrush") as System.Windows.Media.SolidColorBrush;
+                    LicenseTrialText.Text = $"متبقي {remaining} يوم";
+                    LicenseTrialText.Visibility = Visibility.Visible;
+                }
+                else
+                {
+                    LicenseStatusText.Text = "✕ غير نشط";
+                    LicenseStatusText.Foreground = FindResource("ErrorRedBrush") as System.Windows.Media.SolidColorBrush;
+                    LicenseTrialText.Text = "انتهت الفترة التجريبية";
+                    LicenseTrialText.Visibility = Visibility.Visible;
+                }
+                LicenseKeyBox.IsEnabled = true;
+            }
+            HardwareIdText.Text = LicenseService.GetHardwareId();
+        }
+        catch { }
+    }
+
+    private void CopyHwId_Click(object sender, RoutedEventArgs e)
+    {
+        Clipboard.SetText(HardwareIdText.Text);
+        CustomMessageBox.Show("تم نسخ رقم الجهاز!", "تم",
+            MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    private void ActivateLicense_Click(object sender, RoutedEventArgs e)
+    {
+        var key = LicenseKeyBox.Text.Trim();
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            CustomMessageBox.Show("الرجاء إدخال مفتاح التفعيل", "تنبيه",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        if (LicenseService.ActivateLicense(key))
+        {
+            CustomMessageBox.Show("تم تفعيل الترخيص بنجاح! 🎉", "تم التفعيل ✓",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+            LoadLicenseInfo();
+            LicenseKeyBox.Clear();
+        }
+        else
+        {
+            CustomMessageBox.Show("مفتاح التفعيل غير صالح", "خطأ",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
     private void LoadSettings()
     {
         var settings = SettingsService.GetAllSettings();
@@ -51,6 +120,9 @@ public partial class SettingsView : UserControl
         DiscountEnabledCheck.IsChecked = settings.GetValueOrDefault("discount_enabled", "0") == "1";
         DiscountPercentBox.Text = settings.GetValueOrDefault("discount_percent", "10");
         ReturnsEnabledCheck.IsChecked = settings.GetValueOrDefault("returns_enabled", "1") != "0";
+        RasterPrintCheck.IsChecked = settings.GetValueOrDefault("raster_print", "1") == "1";
+        CompactReceiptCheck.IsChecked = settings.GetValueOrDefault("compact_receipt", "0") == "1";
+        InvertColorsCheck.IsChecked = settings.GetValueOrDefault("invert_receipt_colors", "0") == "1";
 
         // Load logo preview
         LogoPreviewImg.Source = LoadImageSafe(_logoPath ?? string.Empty);
@@ -94,8 +166,8 @@ public partial class SettingsView : UserControl
 
         if (dialog.ShowDialog() == true)
         {
-            var dataDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data");
-            var destPath = Path.Combine(dataDir, "logo.png");
+            var dataDir = CafePOS.Helpers.AppPaths.DataDirectory;
+            var destPath = CafePOS.Helpers.AppPaths.LogoPath;
 
             try
             {
@@ -337,6 +409,83 @@ public partial class SettingsView : UserControl
         RefreshPrinterList(PrinterCombo.SelectedItem?.ToString());
     }
 
+    private void TestPrint_Click(object sender, RoutedEventArgs e)
+    {
+        var printerName = PrinterCombo.Text.Trim();
+        SettingsService.SetSetting("printer_name", printerName);
+
+        try
+        {
+            var success = PrintService.TestPrinter(printerName);
+
+            if (success)
+                CustomMessageBox.Show("تم إرسال أمر الطباعة بنجاح!\n\nإذا لم تظهر رسالة الاختبار مطبوعة، فتأكد من:\n• توصيل الطابعة بالكهرباء\n• وجود ورق حراري\n• اسم الطابعة صحيح", "طباعة",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            else
+                CustomMessageBox.Show("لم تستجب الطابعة. تأكد من توصيلها وأن الاسم صحيح.", "فشلت الطباعة",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        catch (Exception ex)
+        {
+            CustomMessageBox.Show($"فشلت الطباعة:\n{ex.Message}", "خطأ",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    // ======================== Payment Methods ========================
+
+    private void LoadPaymentMethods()
+    {
+        PaymentMethodsList.ItemsSource = PaymentMethodService.GetAll();
+    }
+
+    private void AddPaymentMethod_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new InputDialog("إضافة طريقة دفع", "الرجاء إدخال اسم طريقة الدفع الجديدة:");
+        if (dialog.ShowDialog() != true) return;
+        var name = dialog.ResponseText;
+        if (string.IsNullOrWhiteSpace(name)) return;
+
+        try
+        {
+            PaymentMethodService.Add(name.Trim());
+            LoadPaymentMethods();
+        }
+        catch (Exception ex)
+        {
+            CustomMessageBox.Show($"حدث خطأ: {ex.Message}", "خطأ",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void DeletePaymentMethod_Click(object sender, RoutedEventArgs e)
+    {
+        if (PaymentMethodsList.SelectedItem is not PaymentMethod selected)
+        {
+            CustomMessageBox.Show("الرجاء تحديد طريقة دفع من القائمة أولاً", "تنبيه",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var confirm = CustomMessageBox.Show(
+            $"هل تريد حذف طريقة الدفع '{selected.Name}'?",
+            "تأكيد الحذف",
+            MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+        if (confirm != MessageBoxResult.Yes) return;
+
+        try
+        {
+            PaymentMethodService.Delete(selected.Id);
+            LoadPaymentMethods();
+        }
+        catch (Exception ex)
+        {
+            CustomMessageBox.Show($"حدث خطأ: {ex.Message}", "خطأ",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
     // ======================== Save ========================
 
     private void SaveSettings_Click(object sender, RoutedEventArgs e)
@@ -349,6 +498,9 @@ public partial class SettingsView : UserControl
             SettingsService.SetSetting("printer_name", PrinterCombo.Text.Trim());
             SettingsService.SetSetting("discount_enabled", DiscountEnabledCheck.IsChecked == true ? "1" : "0");
             SettingsService.SetSetting("returns_enabled", ReturnsEnabledCheck.IsChecked == true ? "1" : "0");
+            SettingsService.SetSetting("raster_print", RasterPrintCheck.IsChecked == true ? "1" : "0");
+            SettingsService.SetSetting("compact_receipt", CompactReceiptCheck.IsChecked == true ? "1" : "0");
+            SettingsService.SetSetting("invert_receipt_colors", InvertColorsCheck.IsChecked == true ? "1" : "0");
 
             if (decimal.TryParse(DiscountPercentBox.Text.Trim(), out var percent) && percent >= 0 && percent <= 100)
             {

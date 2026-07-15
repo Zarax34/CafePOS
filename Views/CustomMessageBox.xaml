@@ -50,7 +50,7 @@
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                     <Button x:Name="BtnNo" Content="لا" Width="90" Padding="0,8"
                             Click="BtnNo_Click" Margin="8,0,0,0"
-                            Cursor="Hand" FontFamily="{StaticResource AppFont}">
+                            Cursor="Hand" FontFamily="{StaticResource AppFont}" IsCancel="True">
                         <Button.Template>
                             <ControlTemplate TargetType="Button">
                                 <Border x:Name="bg" Background="#EEE" CornerRadius="8"
@@ -67,10 +67,10 @@
                     </Button>
                     <Button x:Name="BtnYes" Content="نعم" Style="{StaticResource PrimaryButton}"
                             Width="100" Padding="0,8" FontSize="14"
-                            Click="BtnYes_Click"/>
+                            Click="BtnYes_Click" IsDefault="True"/>
                     <Button x:Name="BtnOk" Content="حسناً" Style="{StaticResource PrimaryButton}"
                             Width="100" Padding="0,8" FontSize="14"
-                            Click="BtnOk_Click" Visibility="Collapsed"/>
+                            Click="BtnOk_Click" Visibility="Collapsed" IsDefault="True"/>
                 </StackPanel>
             </StackPanel>
         </Grid>

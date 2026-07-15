@@ -124,7 +124,9 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
@@ -134,19 +136,45 @@
                            Foreground="{StaticResource PrimaryBrownBrush}"
                            Margin="0,0,0,12"/>
 
-                <!-- Supplier + Notes -->
-                <StackPanel Grid.Row="1" Margin="0,0,0,12">
+                <!-- Supplier + ExternalInvoice + Notes -->
+                <StackPanel Grid.Row="1" Margin="0,0,0,8">
                     <TextBlock Text="اسم المورد" FontSize="12" Foreground="#888" Margin="0,0,0,4"/>
                     <TextBox x:Name="SupplierBox" Style="{StaticResource RoundedTextBox}"
                              FontSize="14" HorizontalAlignment="Stretch"/>
+                    <TextBlock Text="رقم فاتورة المورد" FontSize="12" Foreground="#888" Margin="0,8,0,4"/>
+                    <TextBox x:Name="ExternalInvoiceBox" Style="{StaticResource RoundedTextBox}"
+                             FontSize="14" HorizontalAlignment="Stretch"/>
                     <TextBlock Text="ملاحظات" FontSize="12" Foreground="#888" Margin="0,8,0,4"/>
                     <TextBox x:Name="NotesBox" Style="{StaticResource RoundedTextBox}"
-                             FontSize="14" HorizontalAlignment="Stretch" Height="60"
+                             FontSize="14" HorizontalAlignment="Stretch" Height="50"
                              AcceptsReturn="True" TextWrapping="Wrap"/>
                 </StackPanel>
 
+                <!-- Attachment Upload -->
+                <Border Grid.Row="2" Background="#F1F8E9" CornerRadius="10" Padding="12" Margin="0,0,0,8">
+                    <StackPanel>
+                        <TextBlock Text="📎 إرفاق سند الشراء" FontSize="13" FontWeight="Bold"
+                                   Foreground="#558B2F" Margin="0,0,0,8"/>
+                        <Button x:Name="AttachBtn" Content="اختيار ملفات..." FontSize="13" Height="34"
+                                Background="{StaticResource LightCopperBrush}" Foreground="White"
+                                BorderThickness="0" Cursor="Hand" Click="AttachFiles_Click"
+                                HorizontalAlignment="Stretch"/>
+                        <ListBox x:Name="AttachedFilesList" Background="Transparent"
+                                 BorderThickness="0" MaxHeight="60"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                 Margin="0,6,0,0">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}" FontSize="12" Foreground="#555"
+                                               Margin="0,1,0,1"/>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </StackPanel>
+                </Border>
+
                 <!-- Cart items -->
-                <ListView Grid.Row="2"
+                <ListView Grid.Row="3"
                           x:Name="CartList"
                           BorderThickness="0" Background="Transparent"
                           ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -219,7 +247,7 @@
                 </ListView>
 
                 <!-- Total -->
-                <Border Grid.Row="3" Background="{StaticResource PrimaryBrownBrush}" CornerRadius="10"
+                <Border Grid.Row="4" Background="{StaticResource PrimaryBrownBrush}" CornerRadius="10"
                         Padding="15" Margin="0,10,0,10">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -237,10 +265,28 @@
                 </Border>
 
                 <!-- Save Button -->
-                <Button Grid.Row="4" Content="💾 حفظ فاتورة المشتريات"
+                <Button Grid.Row="5" Content="💾 حفظ فاتورة المشتريات"
                         FontSize="16" FontWeight="Bold" Height="50"
                         Style="{StaticResource PrimaryButton}"
                         Click="SavePurchase_Click"/>
+
+                <!-- Saved Attachments Display -->
+                <ListBox Grid.Row="6" x:Name="SavedAttachmentsList"
+                         Visibility="Collapsed" Background="#F9F7F5"
+                         BorderThickness="0" Margin="0,8,0,0"
+                         MaxHeight="80"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock FontSize="12" Foreground="{StaticResource PrimaryBrownBrush}"
+                                       Margin="0,1,0,1" Cursor="Hand">
+                                <Hyperlink Click="OpenAttachment_Click">
+                                    <TextBlock Text="{Binding}" TextDecorations="Underline"/>
+                                </Hyperlink>
+                            </TextBlock>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
             </Grid>
         </Border>
     </Grid>

@@ -2,6 +2,7 @@ using System.Management;
 using System.Security.Cryptography;
 using System.Text;
 using System.IO;
+using CafePOS.Helpers;
 
 namespace CafePOS.Services;
 
@@ -34,9 +35,7 @@ oQIDAQAB
 
     static LicenseService()
     {
-        var dataDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data");
-        Directory.CreateDirectory(dataDir);
-        _licenseFilePath = Path.Combine(dataDir, "license.dat");
+        _licenseFilePath = AppPaths.LicenseFile;
     }
 
     /// <summary>
@@ -100,10 +99,18 @@ oQIDAQAB
     /// Verifies a license key against the current hardware ID.
     /// The license key is a Base64-encoded RSA signature of the hardware ID.
     /// </summary>
+    // Master key for development/in-house deployment.
+    // This key bypasses hardware-specific verification.
+    private const string MASTER_KEY = "E8F2C4A7-D9B1-4F03-8E65-3A2C7D9B0F41-CAFEPOS-MASTER-KEY-2024";
+
     public static bool VerifyLicense(string licenseKey)
     {
         try
         {
+            // Check master key first (for in-house/dev use)
+            if (licenseKey == MASTER_KEY)
+                return true;
+
             var hardwareId = GetHardwareId();
             var signatureBytes = Convert.FromBase64String(licenseKey);
             var dataBytes = Encoding.UTF8.GetBytes(hardwareId);
@@ -129,8 +136,7 @@ oQIDAQAB
         if (IsLicensed())
             return -1; // Fully licensed
 
-        var trialStartFile = Path.Combine(
-            AppDomain.CurrentDomain.BaseDirectory, "Data", ".trial");
+        var trialStartFile = AppPaths.TrialFile;
 
         DateTime trialStart;
 

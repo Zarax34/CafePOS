@@ -44,6 +44,8 @@ public class POSViewModel : BaseViewModel
     private string _lastOrderMessage = string.Empty;
     private string _printerStatusText = "جاري فحص الطابعة...";
     private bool _isPrinterOnline;
+    private List<PaymentMethod> _paymentMethods = new();
+    private PaymentMethod? _selectedPaymentMethod;
 
     public string PrinterStatusText
     {
@@ -55,6 +57,18 @@ public class POSViewModel : BaseViewModel
     {
         get => _isPrinterOnline;
         set => SetProperty(ref _isPrinterOnline, value);
+    }
+
+    public List<PaymentMethod> PaymentMethods
+    {
+        get => _paymentMethods;
+        set => SetProperty(ref _paymentMethods, value);
+    }
+
+    public PaymentMethod? SelectedPaymentMethod
+    {
+        get => _selectedPaymentMethod;
+        set => SetProperty(ref _selectedPaymentMethod, value);
     }
 
     public ObservableCollection<Product> FilteredProducts
@@ -175,6 +189,13 @@ public class POSViewModel : BaseViewModel
         LoadProducts();
         LoadCategories();
         LoadDiscountSettings();
+        LoadPaymentMethods();
+    }
+
+    private void LoadPaymentMethods()
+    {
+        PaymentMethods = PaymentMethodService.GetAll();
+        SelectedPaymentMethod = PaymentMethods.FirstOrDefault();
     }
 
     private void LoadProducts()
@@ -305,6 +326,7 @@ public class POSViewModel : BaseViewModel
                 CashierName = (AuthService.CurrentUser != null) 
                     ? (AuthService.CurrentUser.Username + (string.IsNullOrWhiteSpace(AuthService.CurrentUser.FullName) ? "" : " - " + AuthService.CurrentUser.FullName)) 
                     : string.Empty,
+                PaymentMethod = SelectedPaymentMethod?.Name,
                 Items = CartItems.Select(ci => new OrderItem
                 {
                     ProductId = ci.ProductId,
@@ -318,22 +340,25 @@ public class POSViewModel : BaseViewModel
             var savedOrder = OrderService.CreateOrder(order);
 
             // Print receipt (non-blocking on failure)
+            var printWarning = "";
             try
             {
-                PrintService.PrintReceipt(savedOrder);
+                var printed = PrintService.PrintReceipt(savedOrder);
+                if (!printed)
+                    printWarning = "\n⚠ تعذرت الطباعة: لم تجد الطابعة أو لم تستجب";
             }
-            catch
+            catch (Exception printEx)
             {
-                // Printing failure should not block the order
+                printWarning = $"\n⚠ فشلت الطباعة: {printEx.Message}";
             }
 
             LastOrderMessage = $"✓ تم إنهاء الطلب رقم {savedOrder.OrderNumber} | الفاتورة: {savedOrder.InvoiceNumber}";
 
             CustomMessageBox.Show(
-                $"تم إنهاء الطلب بنجاح!\n\nرقم الطلب: {savedOrder.OrderNumber}\nرقم الفاتورة: {savedOrder.InvoiceNumber}\nالإجمالي: {savedOrder.Total:F2} ر.ي",
-                "تم بنجاح ✓",
+                $"تم إنهاء الطلب بنجاح!\n\nرقم الطلب: {savedOrder.OrderNumber}\nرقم الفاتورة: {savedOrder.InvoiceNumber}\nالإجمالي: {savedOrder.Total:F2} ر.ي{printWarning}",
+                string.IsNullOrEmpty(printWarning) ? "تم بنجاح ✓" : "تم بنجاح مع ملاحظة",
                 MessageBoxButton.OK,
-                MessageBoxImage.Information);
+                string.IsNullOrEmpty(printWarning) ? MessageBoxImage.Information : MessageBoxImage.Warning);
 
             // Clear cart for next order
             ClearCartInternal();

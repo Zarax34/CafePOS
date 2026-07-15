@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using CafePOS.Data;
+using CafePOS.Helpers;
 using CafePOS.Services;
 using CafePOS.Views;
 
@@ -12,13 +13,12 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        var startupLog = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "startup.log");
-        var dataDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data");
-        Directory.CreateDirectory(dataDir);
+        // Ensure data directory exists
+        _ = AppPaths.DataDirectory;
 
         void Log(string msg)
         {
-            try { File.AppendAllText(startupLog, $"[{DateTime.Now:HH:mm:ss.fff}] {msg}\n"); } catch { }
+            try { File.AppendAllText(AppPaths.StartupLog, $"[{DateTime.Now:HH:mm:ss.fff}] {msg}\n"); } catch { }
             try { File.AppendAllText(Path.Combine(Path.GetTempPath(), "cafepos_startup.log"), $"[{DateTime.Now:HH:mm:ss.fff}] {msg}\n"); } catch { }
         }
 
@@ -27,14 +27,12 @@ public partial class App : Application
         // Global exception handling
         DispatcherUnhandledException += (_, args) =>
         {
-            var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "error.log");
-            try { File.WriteAllText(logPath, $"[{DateTime.Now}] {args.Exception}"); } catch { }
+            try { File.WriteAllText(AppPaths.ErrorLog, $"[{DateTime.Now}] {args.Exception}"); } catch { }
             args.Handled = true;
         };
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
         {
-            var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "error.log");
-            try { File.WriteAllText(logPath, $"[{DateTime.Now}] Unhandled: {args.ExceptionObject}"); } catch { }
+            try { File.WriteAllText(AppPaths.ErrorLog, $"[{DateTime.Now}] Unhandled: {args.ExceptionObject}"); } catch { }
         };
 
         Log("Exception handlers registered");

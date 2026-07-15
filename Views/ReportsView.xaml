@@ -26,6 +26,9 @@
                                Foreground="#555" VerticalAlignment="Center" Margin="10,0,5,0"/>
                     <DatePicker x:Name="ReportDatePicker" Width="130" Height="36" VerticalAlignment="Center" Margin="0,0,15,0"/>
 
+                    <Button x:Name="BtnSingleDayReport" Content="تقرير يوم واحد"
+                            Style="{StaticResource AccentButton}" Margin="5,0"
+                            Click="SingleDayReport_Click"/>
                     <Button x:Name="BtnDailyReport" Content="تقرير 30 يوم"
                             Style="{StaticResource AccentButton}" Margin="5,0"
                             Click="DailyReport_Click"/>
@@ -112,6 +115,16 @@
                         </DockPanel>
                     </Border>
 
+                    <Border Background="#FFF8E1" CornerRadius="10" Padding="15" Margin="0,0,0,10">
+                        <DockPanel>
+                            <TextBlock Text="إجمالي المصروفات" FontSize="14" Foreground="#F57F17"
+                                       VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TotalExpensesText" FontSize="18" FontWeight="Bold"
+                                       Foreground="#F57F17" HorizontalAlignment="Left"
+                                       FlowDirection="LeftToRight"/>
+                        </DockPanel>
+                    </Border>
+
                     <Border Height="2" Background="#EEE" Margin="0,5"/>
 
                     <Border Background="{StaticResource BackgroundBeigeBrush}" CornerRadius="10"
@@ -154,6 +167,41 @@
                                FontSize="18" FontWeight="Bold"
                                Foreground="{StaticResource PrimaryBrownBrush}"
                                Margin="0,0,0,15"/>
+
+                    <!-- Payment Method Breakdown -->
+                    <StackPanel x:Name="PaymentMethodPanel" Visibility="Collapsed"
+                                Margin="0,0,0,15">
+                        <TextBlock Text="المبيعات حسب طريقة الدفع"
+                                   FontSize="14" FontWeight="Bold"
+                                   Foreground="{StaticResource PrimaryBrownBrush}"
+                                   Margin="0,0,0,8"/>
+                        <ItemsControl x:Name="PaymentMethodList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Padding="10,8" Margin="0,2" Background="#F5F5F5" CornerRadius="6">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="{Binding PaymentMethod}"
+                                                       FontSize="13" FontWeight="SemiBold"
+                                                       VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" FontSize="12" Foreground="#888"
+                                                       VerticalAlignment="Center" Margin="8,0"
+                                                       Text="{Binding OrderCount, StringFormat='{}{0} فاتورة'}"/>
+                                            <TextBlock Grid.Column="2" FontSize="13" FontWeight="Bold"
+                                                       Foreground="{StaticResource PrimaryBrownBrush}"
+                                                       VerticalAlignment="Center"
+                                                       FlowDirection="LeftToRight"
+                                                       Text="{Binding TotalRevenue, StringFormat='{}{0:F2} ر.ي'}"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
 
                     <!-- Top Products List -->
                     <ListView x:Name="TopProductsList"
@@ -212,6 +260,7 @@
                         <TextBox x:Name="ActualCashBox"
                                  Style="{StaticResource RoundedTextBox}"
                                  FontSize="22" FlowDirection="LeftToRight" Height="50"
+                                 Foreground="#333333"
                                  Margin="0,0,0,15" TextAlignment="Center"
                                  KeyDown="ActualCashBox_KeyDown"/>
                         <Button Content="إغلاق الشفت وحساب الفارق"

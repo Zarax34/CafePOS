@@ -1,5 +1,5 @@
-using System.IO;
 using Microsoft.Data.Sqlite;
+using CafePOS.Helpers;
 
 namespace CafePOS.Data;
 
@@ -10,10 +10,7 @@ public static class DatabaseContext
 
     static DatabaseContext()
     {
-        var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-        var dataDir = Path.Combine(baseDir, "Data");
-        Directory.CreateDirectory(dataDir);
-        _dbPath = Path.Combine(dataDir, "cafepos.db");
+        _dbPath = AppPaths.DatabasePath;
         _connectionString = $"Data Source={_dbPath}";
     }
 
@@ -51,6 +48,14 @@ public static class DatabaseContext
         AddColumnIfMissing(connection, "users", "FullName", "TEXT NOT NULL DEFAULT ''");
         AddColumnIfMissing(connection, "daily_counters", "LastPurchaseSeq", "INTEGER NOT NULL DEFAULT 0");
         AddColumnIfMissing(connection, "products", "IsPurchaseOnly", "INTEGER NOT NULL DEFAULT 0");
+        AddColumnIfMissing(connection, "purchases", "AttachmentPath", "TEXT");
+        AddColumnIfMissing(connection, "purchases", "AttachmentFileName", "TEXT");
+        AddColumnIfMissing(connection, "purchases", "ExternalInvoiceNumber", "TEXT");
+        AddColumnIfMissing(connection, "expenses", "InvoiceNumber", "TEXT");
+        AddColumnIfMissing(connection, "daily_counters", "LastExpenseSeq", "INTEGER NOT NULL DEFAULT 0");
+        AddColumnIfMissing(connection, "expenses", "ExpenseType", "TEXT NOT NULL DEFAULT 'سداد'");
+        AddColumnIfMissing(connection, "expenses", "WorkerId", "INTEGER");
+        AddColumnIfMissing(connection, "orders", "PaymentMethod", "TEXT");
 
         // Retroactively mark products that exist in purchase_items but NOT in order_items as IsPurchaseOnly = 1
         try
@@ -184,7 +189,13 @@ public static class DatabaseContext
                 Date TEXT PRIMARY KEY,
                 LastInvoiceSeq INTEGER NOT NULL DEFAULT 0,
                 LastOrderNum INTEGER NOT NULL DEFAULT 0,
-                LastPurchaseSeq INTEGER NOT NULL DEFAULT 0
+                LastPurchaseSeq INTEGER NOT NULL DEFAULT 0,
+                LastExpenseSeq INTEGER NOT NULL DEFAULT 0
+            );
+
+            CREATE TABLE IF NOT EXISTS payment_methods (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                Name TEXT NOT NULL
             );
 
             CREATE TABLE IF NOT EXISTS purchases (
@@ -207,6 +218,28 @@ public static class DatabaseContext
                 Quantity INTEGER NOT NULL DEFAULT 1,
                 Subtotal REAL NOT NULL,
                 FOREIGN KEY(PurchaseId) REFERENCES purchases(Id)
+            );
+
+            CREATE TABLE IF NOT EXISTS workers (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                Name TEXT NOT NULL,
+                Phone TEXT,
+                IsActive INTEGER NOT NULL DEFAULT 1,
+                CreatedAt TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS expenses (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                InvoiceNumber TEXT,
+                Description TEXT NOT NULL,
+                Amount REAL NOT NULL,
+                CashierId INTEGER NOT NULL,
+                ShiftId INTEGER NOT NULL,
+                CreatedAt TEXT NOT NULL,
+                ExpenseType TEXT NOT NULL DEFAULT 'سداد',
+                WorkerId INTEGER,
+                FOREIGN KEY(CashierId) REFERENCES users(Id),
+                FOREIGN KEY(ShiftId) REFERENCES shifts(Id)
             );
         ";
 
@@ -258,7 +291,10 @@ public static class DatabaseContext
                     { "discount_enabled", "0" },
                     { "discount_percent", "10" },
                     { "printer_name", "" },
-                    { "returns_enabled", "1" }
+                    { "returns_enabled", "1" },
+                    { "raster_print", "1" },
+                    { "compact_receipt", "0" },
+                    { "invert_receipt_colors", "0" }
                 };
 
                 foreach (var setting in defaultSettings)

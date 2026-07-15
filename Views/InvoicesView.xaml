@@ -34,6 +34,30 @@
                            Foreground="{StaticResource PrimaryBrownBrush}"
                            Margin="0,0,0,15"/>
 
+                <!-- Filter Tabs -->
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10" Grid.IsSharedSizeScope="True">
+                    <Button x:Name="FilterAll" Content="الكل"
+                            Style="{StaticResource AccentButton}"
+                            Height="34" FontSize="13" Padding="16,6"
+                            Margin="0,0,6,0"
+                            Click="FilterButton_Click" Tag="All"/>
+                    <Button x:Name="FilterSales" Content="مبيعات"
+                            Style="{StaticResource AccentButton}"
+                            Height="34" FontSize="13" Padding="16,6"
+                            Margin="0,0,6,0"
+                            Click="FilterButton_Click" Tag="Sale" Opacity="0.5"/>
+                    <Button x:Name="FilterPurchases" Content="مشتريات"
+                            Style="{StaticResource AccentButton}"
+                            Height="34" FontSize="13" Padding="16,6"
+                            Margin="0,0,6,0"
+                            Click="FilterButton_Click" Tag="Purchase" Opacity="0.5"/>
+                    <Button x:Name="FilterExpenses" Content="مصروفات"
+                            Style="{StaticResource AccentButton}"
+                            Height="34" FontSize="13" Padding="16,6"
+                            Margin="0,0,6,0"
+                            Click="FilterButton_Click" Tag="Expense" Opacity="0.5"/>
+                </StackPanel>
+
                 <!-- Search & Date Filter Bar -->
                 <Grid DockPanel.Dock="Top" Margin="0,0,0,15">
                     <Grid.ColumnDefinitions>
@@ -72,19 +96,44 @@
                             <Border Padding="12,10" Margin="0,3" Background="#FAFAFA" CornerRadius="8" x:Name="ItemBorder">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
+
+                                    <!-- Type Badge -->
+                                    <Border Grid.Column="0" CornerRadius="4"
+                                            Background="{Binding TypeBadgeColor}"
+                                            Height="24" MinWidth="50"
+                                            VerticalAlignment="Center"
+                                            Margin="0,0,10,0">
+                                        <TextBlock Text="{Binding TypeLabel}"
+                                                   FontSize="11" FontWeight="Bold"
+                                                   Foreground="White"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"/>
+                                    </Border>
                                     
-                                    <StackPanel Grid.Column="0">
+                                    <StackPanel Grid.Column="1">
                                         <TextBlock Text="{Binding InvoiceNumber}" FontSize="14" FontWeight="Bold" Foreground="{StaticResource PrimaryBrownBrush}"/>
+                                        <TextBlock Text="{Binding ExternalInvoiceNumber, StringFormat='رقم المورد: {0}'}" FontSize="11" Foreground="#E67E22" Margin="0,1,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Type}" Value="Sale">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
                                         <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
                                             <TextBlock Text="{Binding CreatedAt, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}" FontSize="12" Foreground="#888" Margin="0,0,12,0"/>
-                                            <TextBlock Text="{Binding CashierName, StringFormat='الكاشير: {0}'}" FontSize="12" Foreground="#666"/>
+                                            <TextBlock Text="{Binding PersonName, StringFormat='بواسطة: {0}'}" FontSize="12" Foreground="#666"/>
                                         </StackPanel>
                                     </StackPanel>
 
-                                    <TextBlock Grid.Column="1" FontSize="16" FontWeight="Bold"
+                                    <TextBlock Grid.Column="2" FontSize="16" FontWeight="Bold"
                                                Foreground="{StaticResource AccentCopperBrush}"
                                                VerticalAlignment="Center"
                                                FlowDirection="LeftToRight"
@@ -125,77 +174,188 @@
                     <TextBlock Text="الرجاء اختيار فاتورة من القائمة لعرض تفاصيلها" FontSize="14" Foreground="#888" Margin="0,10,0,0" HorizontalAlignment="Center"/>
                 </StackPanel>
 
-                <!-- Invoice Detail Panel -->
-                <DockPanel x:Name="DetailPanel" Visibility="Collapsed">
-                    <!-- Action Bar (Bottom) -->
-                    <StackPanel DockPanel.Dock="Bottom" Margin="0,15,0,0">
-                        <Button x:Name="BtnReprint" Content="إعادة طباعة الفاتورة 🖨️"
-                                Style="{StaticResource PrimaryButton}"
-                                Height="48" Click="Reprint_Click"/>
-                    </StackPanel>
+                <!-- ===== Sales Order Detail Panel ===== -->
+                <ScrollViewer x:Name="DetailPanel" Visibility="Collapsed" VerticalAlignment="Center" HorizontalScrollBarVisibility="Disabled" MaxHeight="650">
+                    <Border BorderBrush="#DDD" BorderThickness="1" CornerRadius="12" Padding="20" Background="#FAFAFA" MaxWidth="500">
+                        <StackPanel>
+                            <TextBlock Text="مـعـايـنـة فاتورة مبيعات" FontSize="13" FontWeight="Bold" Foreground="#1A73E8" HorizontalAlignment="Center" Margin="0,0,0,15"/>
 
-                    <!-- Receipt Visual Representation -->
-                    <Border BorderBrush="#DDD" BorderThickness="1" CornerRadius="8" Padding="15" Background="#FAFAFA">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                            <StackPanel>
-                                <TextBlock Text="مـعـايـنـة الـفـاتـورة" FontSize="12" FontWeight="Bold" Foreground="#888" HorizontalAlignment="Center" Margin="0,0,0,15"/>
-                                
-                                <TextBlock x:Name="DtlCafeName" Text="كافيه" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center" FontFamily="Courier New"/>
-                                <TextBlock x:Name="DtlPhone" Text="الهاتف: 777777777" FontSize="11" HorizontalAlignment="Center" FontFamily="Courier New" Margin="0,2,0,0"/>
-                                
-                                <Border Style="{StaticResource DashedSep}"/>
+                            <TextBlock x:Name="DtlCafeName" Text="كافيه" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" FontFamily="Courier New"/>
+                            <TextBlock x:Name="DtlPhone" Text="" FontSize="12" HorizontalAlignment="Center" FontFamily="Courier New" Margin="0,4,0,0"/>
 
-                                <TextBlock x:Name="DtlInvoiceNum" Text="فاتورة رقم: " FontSize="11" Foreground="#333" FontFamily="Courier New"/>
-                                <TextBlock x:Name="DtlOrderNum" Text="رقم الطلب: " FontSize="14" FontWeight="Bold" Foreground="{StaticResource PrimaryBrownBrush}" FontFamily="Courier New" Margin="0,3,0,0"/>
-                                <TextBlock x:Name="DtlDate" Text="التاريخ: " FontSize="11" Foreground="#555" FontFamily="Courier New" Margin="0,3,0,0"/>
-                                <TextBlock x:Name="DtlCashier" Text="الكاشير: " FontSize="11" Foreground="#555" FontFamily="Courier New" Margin="0,3,0,0"/>
-                                <TextBlock x:Name="DtlCustomer" Text="العميل: " FontSize="11" Foreground="#555" FontFamily="Courier New" Margin="0,3,0,0" Visibility="Collapsed"/>
+                            <Border Style="{StaticResource DashedSep}"/>
 
-                                <Border Style="{StaticResource DashedSep}"/>
+                            <Border CornerRadius="8" Background="White" Padding="12,10" Margin="0,0,0,8" BorderBrush="#E8E8E8" BorderThickness="1">
+                                <TextBlock x:Name="DtlInvoiceNum" Text="فاتورة رقم: " FontSize="13" Foreground="#333"/>
+                            </Border>
+                            <Border CornerRadius="8" Background="White" Padding="12,10" Margin="0,0,0,8" BorderBrush="#E8E8E8" BorderThickness="1">
+                                <TextBlock x:Name="DtlOrderNum" Text="رقم الطلب: " FontSize="15" FontWeight="Bold" Foreground="{StaticResource PrimaryBrownBrush}"/>
+                            </Border>
+                            <Border CornerRadius="8" Background="White" Padding="12,10" Margin="0,0,0,8" BorderBrush="#E8E8E8" BorderThickness="1">
+                                <TextBlock x:Name="DtlDate" Text="التاريخ: " FontSize="13" Foreground="#555"/>
+                            </Border>
+                            <Border CornerRadius="8" Background="White" Padding="12,10" Margin="0,0,0,8" BorderBrush="#E8E8E8" BorderThickness="1">
+                                <TextBlock x:Name="DtlCashier" Text="الكاشير: " FontSize="13" Foreground="#555"/>
+                            </Border>
+                            <Border x:Name="DtlPaymentMethodCell" CornerRadius="8" Background="White" Padding="12,10" Margin="0,0,0,8" BorderBrush="#E8E8E8" BorderThickness="1" Visibility="Collapsed">
+                                <TextBlock x:Name="DtlPaymentMethod" Text="طريقة الدفع: " FontSize="13" Foreground="#555"/>
+                            </Border>
+                            <Border x:Name="DtlCustomerCell" CornerRadius="8" Background="White" Padding="12,10" Margin="0,0,0,8" BorderBrush="#E8E8E8" BorderThickness="1" Visibility="Collapsed">
+                                <TextBlock x:Name="DtlCustomer" Text="العميل: " FontSize="13" Foreground="#555"/>
+                            </Border>
 
-                                <!-- Items List -->
-                                <ItemsControl x:Name="DtlItemsControl">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Grid Margin="0,2">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="{Binding ProductName}" FontSize="11" FontFamily="Courier New"/>
-                                                    <TextBlock Text="{Binding Quantity, StringFormat=' ×{0}'}" FontSize="11" Foreground="#666" FontFamily="Courier New"/>
-                                                </StackPanel>
-                                                <TextBlock Grid.Column="1" Text="{Binding Subtotal, StringFormat='{}{0:F2}'}" FontSize="11" FontFamily="Courier New" FlowDirection="LeftToRight"/>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+                            <Border Style="{StaticResource DashedSep}"/>
 
-                                <Border Style="{StaticResource DashedSep}"/>
+                            <ItemsControl x:Name="DtlItemsControl" Margin="0,4">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding ProductName}" FontSize="11" FontFamily="Courier New"/>
+                                                <TextBlock Text="{Binding Quantity, StringFormat=' ×{0}'}" FontSize="11" Foreground="#666" FontFamily="Courier New"/>
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1" Text="{Binding Subtotal, StringFormat='{}{0:F2}'}" FontSize="11" FontFamily="Courier New" FlowDirection="LeftToRight"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
 
-                                <!-- Totals -->
-                                <DockPanel Margin="0,2">
-                                    <TextBlock Text="المجموع الفرعي" FontSize="11" FontFamily="Courier New"/>
-                                    <TextBlock x:Name="DtlSubtotal" Text="0.00 ر.ي" FontSize="11" HorizontalAlignment="Left" FlowDirection="LeftToRight" FontFamily="Courier New"/>
-                                </DockPanel>
-                                <DockPanel x:Name="DtlDiscountRow" Margin="0,2" Visibility="Collapsed">
-                                    <TextBlock x:Name="DtlDiscountLabel" Text="الخصم" FontSize="11" Foreground="{StaticResource SuccessGreenBrush}" FontFamily="Courier New"/>
-                                    <TextBlock x:Name="DtlDiscountAmount" Text="0.00 ر.ي" FontSize="11" Foreground="{StaticResource SuccessGreenBrush}" HorizontalAlignment="Left" FlowDirection="LeftToRight" FontFamily="Courier New"/>
-                                </DockPanel>
-                                
-                                <DockPanel Margin="0,6,0,0">
-                                    <TextBlock Text="الإجمالي" FontSize="14" FontWeight="Bold" FontFamily="Courier New"/>
-                                    <TextBlock x:Name="DtlTotal" Text="0.00 ر.ي" FontSize="14" FontWeight="Bold" Foreground="{StaticResource PrimaryBrownBrush}" HorizontalAlignment="Left" FlowDirection="LeftToRight" FontFamily="Courier New"/>
-                                </DockPanel>
+                            <Border Style="{StaticResource DashedSep}"/>
 
-                                <Border Style="{StaticResource DashedSep}"/>
+                            <DockPanel Margin="0,2">
+                                <TextBlock Text="المجموع الفرعي" FontSize="11" FontFamily="Courier New"/>
+                                <TextBlock x:Name="DtlSubtotal" Text="0.00 ر.ي" FontSize="11" HorizontalAlignment="Left" FlowDirection="LeftToRight" FontFamily="Courier New"/>
+                            </DockPanel>
+                            <DockPanel x:Name="DtlDiscountRow" Margin="0,2" Visibility="Collapsed">
+                                <TextBlock x:Name="DtlDiscountLabel" Text="الخصم" FontSize="11" Foreground="{StaticResource SuccessGreenBrush}" FontFamily="Courier New"/>
+                                <TextBlock x:Name="DtlDiscountAmount" Text="0.00 ر.ي" FontSize="11" Foreground="{StaticResource SuccessGreenBrush}" HorizontalAlignment="Left" FlowDirection="LeftToRight" FontFamily="Courier New"/>
+                            </DockPanel>
 
-                                <TextBlock x:Name="DtlFooter" Text="شكراً لزيارتكم" FontSize="11" Foreground="#666" HorizontalAlignment="Center" FontFamily="Courier New"/>
-                            </StackPanel>
-                        </ScrollViewer>
+                            <DockPanel Margin="0,6,0,0">
+                                <TextBlock Text="الإجمالي" FontSize="14" FontWeight="Bold" FontFamily="Courier New"/>
+                                <TextBlock x:Name="DtlTotal" Text="0.00 ر.ي" FontSize="14" FontWeight="Bold" Foreground="{StaticResource PrimaryBrownBrush}" HorizontalAlignment="Left" FlowDirection="LeftToRight" FontFamily="Courier New"/>
+                            </DockPanel>
+
+                            <Border Style="{StaticResource DashedSep}"/>
+
+                            <TextBlock x:Name="DtlFooter" Text="شكراً لزيارتكم" FontSize="11" Foreground="#666" HorizontalAlignment="Center" FontFamily="Courier New"/>
+
+                            <Button x:Name="BtnReprint" Content="إعادة طباعة الفاتورة 🖨️"
+                                    Style="{StaticResource PrimaryButton}"
+                                    Height="48" Margin="0,15,0,0"
+                                    Click="Reprint_Click"/>
+                        </StackPanel>
                     </Border>
-                </DockPanel>
+                </ScrollViewer>
+
+                <!-- ===== Expense Detail Panel (View only — no print) ===== -->
+                <ScrollViewer x:Name="ExpenseDetailPanel" Visibility="Collapsed" VerticalAlignment="Center" HorizontalScrollBarVisibility="Disabled" MaxHeight="650">
+                    <Border BorderBrush="#DDD" BorderThickness="1" CornerRadius="12" Padding="20" Background="#FAFAFA" MaxWidth="500">
+                        <StackPanel>
+                            <TextBlock Text="مـعـايـنـة مصروف" FontSize="13" FontWeight="Bold" Foreground="#E74C3C" HorizontalAlignment="Center" Margin="0,0,0,15"/>
+
+                            <TextBlock x:Name="ExpCafeName" Text="كافيه" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" FontFamily="Courier New"/>
+                            <TextBlock x:Name="ExpPhone" Text="" FontSize="12" HorizontalAlignment="Center" FontFamily="Courier New" Margin="0,4,0,0"/>
+
+                            <Border Style="{StaticResource DashedSep}"/>
+
+                            <Border CornerRadius="8" Background="White" Padding="12,10" Margin="0,0,0,8" BorderBrush="#E8E8E8" BorderThickness="1">
+                                <TextBlock x:Name="ExpInvoiceNum" Text="فاتورة رقم: " FontSize="13" Foreground="#333"/>
+                            </Border>
+                            <Border CornerRadius="8" Background="White" Padding="12,10" Margin="0,0,0,8" BorderBrush="#E8E8E8" BorderThickness="1">
+                                <TextBlock x:Name="ExpDescription" Text="الوصف: " FontSize="14" FontWeight="Bold" Foreground="{StaticResource PrimaryBrownBrush}"/>
+                            </Border>
+                            <Border CornerRadius="8" Background="White" Padding="12,10" Margin="0,0,0,8" BorderBrush="#E8E8E8" BorderThickness="1">
+                                <TextBlock x:Name="ExpAmount" Text="المبلغ: " FontSize="14" FontWeight="Bold" Foreground="#E74C3C"/>
+                            </Border>
+                            <Border CornerRadius="8" Background="White" Padding="12,10" Margin="0,0,0,8" BorderBrush="#E8E8E8" BorderThickness="1">
+                                <TextBlock x:Name="ExpDate" Text="التاريخ: " FontSize="13" Foreground="#555"/>
+                            </Border>
+                            <Border CornerRadius="8" Background="White" Padding="12,10" Margin="0,0,0,8" BorderBrush="#E8E8E8" BorderThickness="1">
+                                <TextBlock x:Name="ExpCashier" Text="الكاشير: " FontSize="13" Foreground="#555"/>
+                            </Border>
+
+                            <Border Style="{StaticResource DashedSep}"/>
+
+                            <DockPanel Margin="0,2">
+                                <TextBlock Text="الإجمالي" FontSize="11" FontFamily="Courier New"/>
+                                <TextBlock x:Name="ExpTotal" Text="0.00 ر.ي" FontSize="11" HorizontalAlignment="Left" FlowDirection="LeftToRight" FontFamily="Courier New"/>
+                            </DockPanel>
+
+                            <Border Style="{StaticResource DashedSep}"/>
+
+                            <TextBlock x:Name="ExpFooter" Text="شكراً لزيارتكم" FontSize="11" Foreground="#666" HorizontalAlignment="Center" FontFamily="Courier New"/>
+                        </StackPanel>
+                    </Border>
+                </ScrollViewer>
+
+                <!-- ===== Purchase Detail Panel (View only — no print) ===== -->
+                <ScrollViewer x:Name="PurchaseDetailPanel" Visibility="Collapsed" VerticalAlignment="Center" HorizontalScrollBarVisibility="Disabled" MaxHeight="650">
+                    <Border BorderBrush="#DDD" BorderThickness="1" CornerRadius="12" Padding="20" Background="#FAFAFA" MaxWidth="500">
+                        <StackPanel>
+                            <TextBlock Text="مـعـايـنـة فاتورة مشتريات" FontSize="13" FontWeight="Bold" Foreground="#E67E22" HorizontalAlignment="Center" Margin="0,0,0,15"/>
+
+                            <TextBlock x:Name="PurCafeName" Text="كافيه" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" FontFamily="Courier New"/>
+                            <TextBlock x:Name="PurPhone" Text="" FontSize="12" HorizontalAlignment="Center" FontFamily="Courier New" Margin="0,4,0,0"/>
+
+                            <Border Style="{StaticResource DashedSep}"/>
+
+                            <Border CornerRadius="8" Background="White" Padding="12,10" Margin="0,0,0,8" BorderBrush="#E8E8E8" BorderThickness="1">
+                                <TextBlock x:Name="PurInvoiceNum" Text="فاتورة رقم: " FontSize="13" Foreground="#333"/>
+                            </Border>
+                            <Border x:Name="PurExternalInvoiceNumCell" CornerRadius="8" Background="White" Padding="12,10" Margin="0,0,0,8" BorderBrush="#E8E8E8" BorderThickness="1" Visibility="Collapsed">
+                                <TextBlock x:Name="PurExternalInvoiceNum" Text="" FontSize="13" Foreground="#E67E22"/>
+                            </Border>
+                            <Border CornerRadius="8" Background="White" Padding="12,10" Margin="0,0,0,8" BorderBrush="#E8E8E8" BorderThickness="1">
+                                <TextBlock x:Name="PurSupplier" Text="المورد: " FontSize="14" FontWeight="Bold" Foreground="{StaticResource PrimaryBrownBrush}"/>
+                            </Border>
+                            <Border CornerRadius="8" Background="White" Padding="12,10" Margin="0,0,0,8" BorderBrush="#E8E8E8" BorderThickness="1">
+                                <TextBlock x:Name="PurDate" Text="التاريخ: " FontSize="13" Foreground="#555"/>
+                            </Border>
+                            <Border CornerRadius="8" Background="White" Padding="12,10" Margin="0,0,0,8" BorderBrush="#E8E8E8" BorderThickness="1">
+                                <TextBlock x:Name="PurCreator" Text="المستخدم: " FontSize="13" Foreground="#555"/>
+                            </Border>
+                            <Border x:Name="PurNotesCell" CornerRadius="8" Background="White" Padding="12,10" Margin="0,0,0,8" BorderBrush="#E8E8E8" BorderThickness="1" Visibility="Collapsed">
+                                <TextBlock x:Name="PurNotes" Text="ملاحظات: " FontSize="13" Foreground="#555"/>
+                            </Border>
+
+                            <Border Style="{StaticResource DashedSep}"/>
+
+                            <ItemsControl x:Name="PurItemsControl" Margin="0,4">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding ProductName}" FontSize="11" FontFamily="Courier New"/>
+                                                <TextBlock Text="{Binding Quantity, StringFormat=' ×{0}'}" FontSize="11" Foreground="#666" FontFamily="Courier New"/>
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1" Text="{Binding Subtotal, StringFormat='{}{0:F2}'}" FontSize="11" FontFamily="Courier New" FlowDirection="LeftToRight"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <Border Style="{StaticResource DashedSep}"/>
+
+                            <DockPanel Margin="0,2">
+                                <TextBlock Text="الإجمالي" FontSize="11" FontFamily="Courier New"/>
+                                <TextBlock x:Name="PurTotal" Text="0.00 ر.ي" FontSize="11" HorizontalAlignment="Left" FlowDirection="LeftToRight" FontFamily="Courier New"/>
+                            </DockPanel>
+
+                            <Border Style="{StaticResource DashedSep}"/>
+
+                            <TextBlock x:Name="PurFooter" Text="شكراً لزيارتكم" FontSize="11" Foreground="#666" HorizontalAlignment="Center" FontFamily="Courier New"/>
+                        </StackPanel>
+                    </Border>
+                </ScrollViewer>
             </Grid>
         </Border>
     </Grid>

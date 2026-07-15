@@ -40,11 +40,13 @@ public partial class MainWindow : Window
         // Role-based visibility
         if (_currentUser.IsCashier)
         {
-            // Cashier: فقط نقطة البيع والمرتجعات والفواتير
+            // Cashier: فقط نقطة البيع والمرتجعات والفواتير والمصروفات
             BtnPurchases.Visibility = Visibility.Collapsed;
             BtnReports.Visibility = Visibility.Collapsed;
             BtnProducts.Visibility = Visibility.Collapsed;
             BtnSettings.Visibility = Visibility.Collapsed;
+            BtnWorkers.Visibility = Visibility.Collapsed;
+            BtnWorkerWithdrawals.Visibility = Visibility.Collapsed;
 
             // Hide returns button if returns are disabled by admin
             if (!SettingsService.IsReturnsEnabled())
@@ -54,10 +56,9 @@ public partial class MainWindow : Window
         }
         else if (_currentUser.IsStoreManager)
         {
-            // Store manager: فقط المنتجات والمشتريات والفواتير
+            // Store manager: يرى كل شيء عدا نقطة البيع والمرتجعات والإعدادات
             BtnPOS.Visibility = Visibility.Collapsed;
             BtnReturns.Visibility = Visibility.Collapsed;
-            BtnReports.Visibility = Visibility.Collapsed;
             BtnSettings.Visibility = Visibility.Collapsed;
             ShiftClose.Visibility = Visibility.Collapsed;
         }
@@ -162,8 +163,30 @@ public partial class MainWindow : Window
                 }
                 break;
 
+            case "Expenses":
+                try
+                {
+                    ContentArea.Content = new ExpensesView();
+                }
+                catch (Exception ex)
+                {
+                    CustomMessageBox.Show($"خطأ في فتح شاشة المصروفات:\n{ex.GetType().Name}: {ex.Message}\n\n{ex.StackTrace}", "خطأ",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                break;
+
+            case "Workers":
+                if (_currentUser.IsManager || _currentUser.IsStoreManager)
+                    ContentArea.Content = new WorkersView();
+                break;
+
+            case "WorkerWithdrawals":
+                if (_currentUser.IsManager || _currentUser.IsStoreManager)
+                    ContentArea.Content = new WorkerWithdrawalsView();
+                break;
+
             case "Reports":
-                if (_currentUser.IsManager)
+                if (_currentUser.IsManager || _currentUser.IsStoreManager)
                     ContentArea.Content = new ReportsView();
                 break;
 
@@ -185,6 +208,11 @@ public partial class MainWindow : Window
         {
             NavigateTo(page);
         }
+    }
+
+    private void MoreButton_Click(object sender, RoutedEventArgs e)
+    {
+        MorePopup.IsOpen = !MorePopup.IsOpen;
     }
 
     private void Logout_Click(object sender, RoutedEventArgs e)

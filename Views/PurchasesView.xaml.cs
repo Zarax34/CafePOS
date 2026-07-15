@@ -1,5 +1,8 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
+using System.IO;
+using Microsoft.Win32;
 using CafePOS.Models;
 using CafePOS.Services;
 using CafePOS.ViewModels;
@@ -11,6 +14,8 @@ public partial class PurchasesView : UserControl
 {
     private List<Product> _products = new();
     private List<CartPurchaseItem> _cart = new();
+    private List<string> _selectedFiles = new();
+    private List<string> _selectedFileNames = new();
 
     public PurchasesView()
     {
@@ -143,6 +148,51 @@ public partial class PurchasesView : UserControl
         UpdateTotal();
     }
 
+    private void AttachFiles_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Multiselect = true,
+            Title = "اختيار سند الشراء",
+            Filter = "الملفات المدعومة (*.jpg;*.jpeg;*.png;*.pdf;*.bmp;*.gif)|*.jpg;*.jpeg;*.png;*.pdf;*.bmp;*.gif|جميع الملفات (*.*)|*.*"
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            _selectedFiles = dialog.FileNames.ToList();
+            _selectedFileNames = dialog.SafeFileNames.ToList();
+            AttachedFilesList.ItemsSource = _selectedFileNames;
+        }
+    }
+
+    private void OpenAttachment_Click(object sender, RoutedEventArgs e)
+    {
+        var hyperlink = (Hyperlink)sender;
+        var fileName = (string)hyperlink.DataContext;
+        var paths = SavedAttachmentsList.Tag as string;
+        if (string.IsNullOrEmpty(paths)) return;
+
+        var allPaths = paths.Split('|');
+        var allNames = ((System.Collections.IList)SavedAttachmentsList.ItemsSource).Cast<string>().ToList();
+
+        for (int i = 0; i < allNames.Count; i++)
+        {
+            if (allNames[i] == fileName && i < allPaths.Length && File.Exists(allPaths[i]))
+            {
+                try
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = allPaths[i],
+                        UseShellExecute = true
+                    });
+                }
+                catch { }
+                break;
+            }
+        }
+    }
+
     private void SavePurchase_Click(object sender, RoutedEventArgs e)
     {
         if (_cart.Count == 0)
@@ -158,6 +208,7 @@ public partial class PurchasesView : UserControl
         var purchase = new Purchase
         {
             SupplierName = SupplierBox.Text.Trim(),
+            ExternalInvoiceNumber = ExternalInvoiceBox.Text.Trim(),
             Notes = NotesBox.Text.Trim(),
             Total = _cart.Sum(c => c.Subtotal),
             CreatedBy = user.Id,
@@ -174,14 +225,53 @@ public partial class PurchasesView : UserControl
 
         try
         {
+            // Copy files to Attachments folder before saving
+            if (_selectedFiles.Count > 0)
+            {
+                var attachDir = CafePOS.Helpers.AppPaths.GetPath("Attachments");
+                Directory.CreateDirectory(attachDir);
+
+                var savedPaths = new List<string>();
+                var savedNames = new List<string>();
+
+                foreach (var filePath in _selectedFiles)
+                {
+                    var fileName = Path.GetFileNameWithoutExtension(filePath);
+                    var ext = Path.GetExtension(filePath);
+                    var uniqueName = $"{fileName}_{DateTime.Now:yyyyMMddHHmmss}_{Guid.NewGuid():N}{ext}";
+                    var destPath = Path.Combine(attachDir, uniqueName);
+
+                    File.Copy(filePath, destPath, overwrite: true);
+                    savedPaths.Add(destPath);
+                    savedNames.Add(Path.GetFileName(filePath));
+                }
+
+                purchase.AttachmentPath = string.Join("|", savedPaths);
+                purchase.AttachmentFileName = string.Join("|", savedNames);
+            }
+
             PurchaseService.CreatePurchase(purchase);
+
             CustomMessageBox.Show($"تم حفظ فاتورة المشتريات بنجاح\nرقم الفاتورة: {purchase.InvoiceNumber}\nالإجمالي: {purchase.Total:F2}", "تم ✓",
                 MessageBoxButton.OK, MessageBoxImage.Information);
+
+            // Show saved attachments
+            if (!string.IsNullOrEmpty(purchase.AttachmentFileName))
+            {
+                var names = purchase.AttachmentFileName.Split('|').ToList();
+                SavedAttachmentsList.ItemsSource = names;
+                SavedAttachmentsList.Tag = purchase.AttachmentPath;
+                SavedAttachmentsList.Visibility = Visibility.Visible;
+            }
 
             // Clear cart
             _cart.Clear();
             SupplierBox.Clear();
+            ExternalInvoiceBox.Clear();
             NotesBox.Clear();
+            _selectedFiles.Clear();
+            _selectedFileNames.Clear();
+            AttachedFilesList.ItemsSource = null;
             UpdateTotal();
         }
         catch (Exception ex)

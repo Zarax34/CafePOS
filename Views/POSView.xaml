@@ -190,6 +190,17 @@
                     <TextBox.Tag>اسم العميل (اختياري)</TextBox.Tag>
                 </TextBox>
 
+                <!-- Payment Method -->
+                <DockPanel DockPanel.Dock="Bottom" Margin="0,0,0,8">
+                    <TextBlock Text="طريقة الدفع" FontSize="13" Foreground="#555"
+                               VerticalAlignment="Center" Margin="0,0,0,0"/>
+                    <ComboBox ItemsSource="{Binding PaymentMethods}"
+                              SelectedItem="{Binding SelectedPaymentMethod}"
+                              DisplayMemberPath="Name"
+                              FontSize="14" MinWidth="120"
+                              HorizontalAlignment="Left"/>
+                </DockPanel>
+
                 <!-- Bottom: Totals + Buttons -->
                 <StackPanel DockPanel.Dock="Bottom">
 

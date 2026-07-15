@@ -8,7 +8,8 @@ public class SalesReport
     public decimal TotalDiscounts { get; set; }
     public decimal TotalReturns { get; set; }
     public decimal TotalPurchases { get; set; }
-    public decimal NetCash { get; set; }
+    public decimal TotalExpenses { get; set; }
+    public decimal NetCash => TotalRevenue - TotalReturns - TotalExpenses;
     public decimal NetProfit => NetCash - TotalPurchases;
     public int OrderCount { get; set; }
 }
@@ -37,6 +38,13 @@ public class TopProductItem
 {
     public string Name { get; set; } = string.Empty;
     public int TotalQuantity { get; set; }
+    public decimal TotalRevenue { get; set; }
+}
+
+public class PaymentMethodBreakdownItem
+{
+    public string PaymentMethod { get; set; } = string.Empty;
+    public int OrderCount { get; set; }
     public decimal TotalRevenue { get; set; }
 }
 
@@ -119,7 +127,9 @@ public static class ReportService
         // Get purchases total
         report.TotalPurchases = GetPurchasesTotal(from, to);
 
-        report.NetCash = report.TotalRevenue - report.TotalReturns;
+        // Get expenses total
+        report.TotalExpenses = GetExpensesTotal(from, to);
+
         return report;
     }
 
@@ -246,25 +256,38 @@ public static class ReportService
         return items;
     }
 
-    public static List<TopProductItem> GetTopProducts(DateTime from, DateTime to, int limit = 10)
+    public static decimal GetExpensesTotal(string from, string to)
+    {
+        using var connection = DatabaseContext.GetConnection();
+        connection.Open();
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = "SELECT COALESCE(SUM(Amount), 0) FROM expenses WHERE CreatedAt >= @from AND CreatedAt <= @to;";
+        cmd.Parameters.AddWithValue("@from", from);
+        cmd.Parameters.AddWithValue("@to", to);
+        return (decimal)Convert.ToDouble(cmd.ExecuteScalar());
+    }
+
+    public static List<TopProductItem> GetTopProducts(DateTime from, DateTime to, int? limit = null)
     {
         var items = new List<TopProductItem>();
         using var connection = DatabaseContext.GetConnection();
         connection.Open();
 
         using var cmd = connection.CreateCommand();
-        cmd.CommandText = @"
+        var sql = @"
             SELECT oi.ProductName, SUM(oi.Quantity) AS TotalQty, SUM(oi.Subtotal) AS TotalRev
             FROM order_items oi
             JOIN orders o ON oi.OrderId = o.Id
             WHERE o.CreatedAt >= @from AND o.CreatedAt <= @to
             GROUP BY oi.ProductName
-            ORDER BY TotalQty DESC
-            LIMIT @limit;
-        ";
+            ORDER BY TotalQty DESC";
+        if (limit.HasValue)
+            sql += " LIMIT @limit;";
+        cmd.CommandText = sql;
         cmd.Parameters.AddWithValue("@from", from.ToString("yyyy-MM-dd HH:mm:ss"));
         cmd.Parameters.AddWithValue("@to", to.ToString("yyyy-MM-dd HH:mm:ss"));
-        cmd.Parameters.AddWithValue("@limit", limit);
+        if (limit.HasValue)
+            cmd.Parameters.AddWithValue("@limit", limit.Value);
 
         using var reader = cmd.ExecuteReader();
         while (reader.Read())
@@ -273,6 +296,39 @@ public static class ReportService
             {
                 Name = reader.GetString(0),
                 TotalQuantity = reader.GetInt32(1),
+                TotalRevenue = (decimal)reader.GetDouble(2)
+            });
+        }
+
+        return items;
+    }
+
+    public static List<PaymentMethodBreakdownItem> GetPaymentMethodBreakdown(string from, string to)
+    {
+        var items = new List<PaymentMethodBreakdownItem>();
+        using var connection = DatabaseContext.GetConnection();
+        connection.Open();
+
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = @"
+            SELECT COALESCE(o.PaymentMethod, 'غير محدد') AS Method,
+                   COUNT(*) AS OrderCount,
+                   COALESCE(SUM(o.Total), 0) AS TotalRevenue
+            FROM orders o
+            WHERE o.CreatedAt >= @from AND o.CreatedAt <= @to
+            GROUP BY o.PaymentMethod
+            ORDER BY TotalRevenue DESC;
+        ";
+        cmd.Parameters.AddWithValue("@from", from);
+        cmd.Parameters.AddWithValue("@to", to);
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            items.Add(new PaymentMethodBreakdownItem
+            {
+                PaymentMethod = reader.GetString(0),
+                OrderCount = reader.GetInt32(1),
                 TotalRevenue = (decimal)reader.GetDouble(2)
             });
         }

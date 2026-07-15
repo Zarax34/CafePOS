@@ -80,7 +80,18 @@ public static class ShiftService
             totalReturns = (decimal)Convert.ToDouble(cmd.ExecuteScalar());
         }
 
-        expectedCash -= totalReturns;
+        decimal totalExpenses = 0;
+        using (var cmd = connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                SELECT COALESCE(SUM(Amount), 0) FROM expenses
+                WHERE ShiftId = @shiftId;
+            ";
+            cmd.Parameters.AddWithValue("@shiftId", shiftId);
+            totalExpenses = (decimal)Convert.ToDouble(cmd.ExecuteScalar());
+        }
+
+        expectedCash -= totalReturns + totalExpenses;
         var difference = actualCash - expectedCash;
 
         // Update shift

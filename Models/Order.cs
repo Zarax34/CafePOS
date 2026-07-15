@@ -12,6 +12,7 @@ public class Order
     public decimal Total { get; set; }
     public int CashierId { get; set; }
     public string? CashierName { get; set; }
+    public string? PaymentMethod { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.Now;
     public List<OrderItem> Items { get; set; } = new();
 }

@@ -1,0 +1,54 @@
+# .NET build
+bin/
+obj/
+
+# Published output
+publish/
+publish-output/
+installer_output/
+installer-output/
+
+# Installer files
+*.msi
+*.wixpdb
+*.cab
+installer.wxs
+installer.iss
+setup.iss
+setup-bundle.wxs
+.wix/
+CafePOS_Setup.exe
+
+# Build scripts (keep in repo)
+# build-installer.ps1
+# generate-iss.ps1
+# generate-wxs.ps1
+
+# IDE
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Rider
+.idea/
+*.sln.iml
+
+# Visual Studio Code
+.vscode/
+
+# OS
+Thumbs.db
+Desktop.ini
+
+# User data (runtime-created)
+# Data/ and Attachments/ at root are user data directories (created during install)
+# The source files under Data/ (e.g. DatabaseContext.cs) are tracked separately
+publish/Data/
+publish/Attachments/
+
+# Temp
+*.log
+temp/
+icon_temp.png
