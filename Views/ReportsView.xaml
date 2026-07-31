@@ -43,9 +43,13 @@
                              FontSize="14" Padding="16,8"
                              Click="YearlyReport_Click"/>
                     <Button x:Name="BtnExport" Content="📥 تصدير التقرير"
-                             Style="{StaticResource PrimaryButton}" Margin="5,0"
-                             FontSize="14" Padding="16,8"
-                             Click="ExportReport_Click"/>
+                              Style="{StaticResource PrimaryButton}" Margin="5,0"
+                              FontSize="14" Padding="16,8"
+                              Click="ExportReport_Click"/>
+                    <Button x:Name="BtnExportPdf" Content="📄 تصدير PDF"
+                              Style="{StaticResource AccentButton}" Margin="5,0"
+                              FontSize="14" Padding="16,8"
+                              Click="ExportPdf_Click"/>
                     <Button x:Name="BtnShiftClose" Content="إغلاق الشفت"
                             Style="{StaticResource PrimaryButton}" Margin="5,0"
                             FontSize="14" Padding="16,8"
