@@ -36,6 +36,20 @@ public partial class CloseShiftWindow : Window
         // Calculate expected sales for cashier to view (total orders - total returns)
         _totalSales = CalculateTotalSales(_currentShift.StartTime);
         TotalSalesText.Text = $"{_totalSales:F2} ر.ي";
+        PettyCashText.Text = $"{_totalSales:F2} ر.ي";
+    }
+
+    private void DepositBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+    {
+        if (PettyCashText == null) return;
+        if (decimal.TryParse(DepositBox.Text.Trim(), out var deposit) && deposit >= 0)
+        {
+            PettyCashText.Text = $"{_totalSales - deposit:F2} ر.ي";
+        }
+        else
+        {
+            PettyCashText.Text = $"{_totalSales:F2} ر.ي";
+        }
     }
 
     private decimal CalculateTotalSales(DateTime start)
@@ -103,9 +117,25 @@ public partial class CloseShiftWindow : Window
             return;
         }
 
+        decimal deposit = 0;
+        if (!string.IsNullOrWhiteSpace(DepositBox.Text.Trim()))
+        {
+            if (!decimal.TryParse(DepositBox.Text.Trim(), out deposit) || deposit < 0)
+            {
+                CustomMessageBox.Show("الرجاء إدخال مبلغ إيداع صحيح وموجب", "تنبيه", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+        }
+
+        if (deposit > actualCash)
+        {
+            CustomMessageBox.Show("المبلغ المودع لا يمكن أن يتجاوز المبلغ الفعلي الموجود في الخزينة", "تنبيه", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
         if (_currentShift == null) return;
 
-        var closedShift = ShiftService.CloseShift(_currentShift.Id, actualCash);
+        var closedShift = ShiftService.CloseShift(_currentShift.Id, actualCash, deposit);
         if (closedShift != null)
         {
             CustomMessageBox.Show("تم إغلاق ورديتك بنجاح! سيتم الآن تسجيل الخروج التلقائي.", "تم الإغلاق ✓", MessageBoxButton.OK, MessageBoxImage.Information);

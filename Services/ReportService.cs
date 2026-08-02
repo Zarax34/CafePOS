@@ -9,6 +9,8 @@ public class SalesReport
     public decimal TotalReturns { get; set; }
     public decimal TotalPurchases { get; set; }
     public decimal TotalExpenses { get; set; }
+    public decimal TotalDeposit { get; set; }
+    public decimal TotalPettyCash { get; set; }
     public decimal NetCash => TotalRevenue - TotalReturns - TotalExpenses;
     public decimal NetProfit => NetCash - TotalPurchases;
     public int OrderCount { get; set; }
@@ -21,6 +23,8 @@ public class DailyBreakdownItem
     public decimal TotalRevenue { get; set; }
     public decimal Purchases { get; set; }
     public decimal ShiftCloseCash { get; set; }
+    public decimal Deposit { get; set; }
+    public decimal PettyCash { get; set; }
 }
 
 public class MonthlyBreakdownItem
@@ -32,6 +36,8 @@ public class MonthlyBreakdownItem
     public decimal TotalReturns { get; set; }
     public decimal TotalPurchases { get; set; }
     public decimal NetCash { get; set; }
+    public decimal Deposit { get; set; }
+    public decimal PettyCash { get; set; }
 }
 
 public class TopProductItem
@@ -130,6 +136,25 @@ public static class ReportService
         // Get expenses total
         report.TotalExpenses = GetExpensesTotal(from, to);
 
+        // Get shift deposits and petty cash
+        using (var cmd = connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                SELECT COALESCE(SUM(DepositAmount), 0), COALESCE(SUM(PettyCashAmount), 0)
+                FROM shifts
+                WHERE Status = 'closed' AND EndTime >= @from AND EndTime <= @to;
+            ";
+            cmd.Parameters.AddWithValue("@from", from);
+            cmd.Parameters.AddWithValue("@to", to);
+
+            using var reader = cmd.ExecuteReader();
+            if (reader.Read())
+            {
+                report.TotalDeposit = (decimal)Convert.ToDouble(reader.GetValue(0));
+                report.TotalPettyCash = (decimal)Convert.ToDouble(reader.GetValue(1));
+            }
+        }
+
         return report;
     }
 
@@ -143,7 +168,9 @@ public static class ReportService
         cmd.CommandText = @"
             SELECT o.Day, o.OrderCount, o.TotalRevenue,
                    COALESCE(p.PurchaseTotal, 0) AS PurchaseTotal,
-                   COALESCE(s.ActualCash, 0) AS ShiftCash
+                   COALESCE(s.ShiftCash, 0) AS ShiftCash,
+                   COALESCE(s.TotalDeposit, 0) AS TotalDeposit,
+                   COALESCE(s.TotalPetty, 0) AS TotalPetty
             FROM (
                 SELECT substr(CreatedAt,1,10) AS Day,
                        COUNT(*) AS OrderCount,
@@ -161,10 +188,13 @@ public static class ReportService
             ) p ON o.Day = p.Day
             LEFT JOIN (
                 SELECT substr(EndTime,1,10) AS Day,
-                       ActualCash
+                       SUM(ActualCash) AS ShiftCash,
+                       SUM(DepositAmount) AS TotalDeposit,
+                       SUM(PettyCashAmount) AS TotalPetty
                 FROM shifts
                 WHERE Status = 'closed'
                   AND EndTime >= @from AND EndTime <= @to
+                GROUP BY substr(EndTime,1,10)
             ) s ON o.Day = s.Day
             ORDER BY o.Day ASC;
         ";
@@ -180,7 +210,9 @@ public static class ReportService
                 OrderCount = reader.GetInt32(1),
                 TotalRevenue = (decimal)reader.GetDouble(2),
                 Purchases = (decimal)reader.GetDouble(3),
-                ShiftCloseCash = (decimal)reader.GetDouble(4)
+                ShiftCloseCash = (decimal)reader.GetDouble(4),
+                Deposit = (decimal)reader.GetDouble(5),
+                PettyCash = (decimal)reader.GetDouble(6)
             });
         }
 
@@ -241,6 +273,24 @@ public static class ReportService
                 totalPurchases = (decimal)Convert.ToDouble(p);
             }
 
+            decimal deposit = 0m;
+            decimal pettyCash = 0m;
+            using (var scmd = connection.CreateCommand())
+            {
+                scmd.CommandText = @"
+                    SELECT COALESCE(SUM(DepositAmount), 0), COALESCE(SUM(PettyCashAmount), 0)
+                    FROM shifts
+                    WHERE Status = 'closed' AND substr(EndTime,1,7) = @month;
+                ";
+                scmd.Parameters.AddWithValue("@month", month);
+                using var sr = scmd.ExecuteReader();
+                if (sr.Read())
+                {
+                    deposit = (decimal)Convert.ToDouble(sr.GetValue(0));
+                    pettyCash = (decimal)Convert.ToDouble(sr.GetValue(1));
+                }
+            }
+
             items.Add(new MonthlyBreakdownItem
             {
                 Month = month,
@@ -249,7 +299,9 @@ public static class ReportService
                 TotalDiscounts = (decimal)reader.GetDouble(3),
                 TotalReturns = totalReturns,
                 TotalPurchases = totalPurchases,
-                NetCash = (decimal)reader.GetDouble(2) - totalReturns
+                NetCash = (decimal)reader.GetDouble(2) - totalReturns,
+                Deposit = deposit,
+                PettyCash = pettyCash
             });
         }
 

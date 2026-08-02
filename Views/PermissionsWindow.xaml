@@ -1,0 +1,62 @@
+<Window x:Class="CafePOS.Views.PermissionsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="صلاحيات المستخدم"
+        Icon="/Assets/app_icon.ico"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Width="580" Height="640"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        FlowDirection="RightToLeft"
+        ShowInTaskbar="False">
+
+    <Border CornerRadius="16" Background="{StaticResource BackgroundBeigeBrush}"
+            Margin="15" Padding="25">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="25" ShadowDepth="4" Opacity="0.3" Color="#3E2723"/>
+        </Border.Effect>
+        <StackPanel>
+            <!-- Header -->
+            <TextBlock x:Name="HeaderText" Text="🔐 صلاحيات المستخدم" FontSize="18" FontWeight="Bold"
+                       Foreground="{StaticResource PrimaryBrownBrush}"
+                       FontFamily="{StaticResource AppFont}"
+                       HorizontalAlignment="Center" Margin="0,0,0,6"/>
+            <TextBlock x:Name="UserInfoText" Text="" FontSize="12" Foreground="#888"
+                       FontFamily="{StaticResource AppFont}"
+                       HorizontalAlignment="Center" Margin="0,0,0,15"/>
+
+            <!-- Permissions list -->
+            <Border Background="White" CornerRadius="10" Padding="15" Margin="0,0,0,18">
+                <ScrollViewer x:Name="ScrollArea" VerticalScrollBarVisibility="Auto"
+                              MaxHeight="440" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel x:Name="PermissionsPanel" Margin="0,5,0,5"/>
+                </ScrollViewer>
+            </Border>
+
+            <!-- Buttons -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                <Button Content="رجوع ↩" Padding="20,8"
+                        Click="Cancel_Click" Margin="8,0,0,0"
+                        Cursor="Hand" FontFamily="{StaticResource AppFont}">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="bg" Background="#EEE" CornerRadius="8"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bg" Property="Background" Value="#DDD"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+                <Button Content="حفظ الصلاحيات" Style="{StaticResource PrimaryButton}"
+                        Padding="25,8" FontSize="14" Click="Save_Click"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

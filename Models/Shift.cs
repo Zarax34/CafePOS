@@ -10,5 +10,7 @@ public class Shift
     public decimal ExpectedCash { get; set; }
     public decimal ActualCash { get; set; }
     public decimal Difference { get; set; }
+    public decimal DepositAmount { get; set; }
+    public decimal PettyCashAmount { get; set; }
     public string Status { get; set; } = "open";
 }

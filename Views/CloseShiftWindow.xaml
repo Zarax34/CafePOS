@@ -5,7 +5,7 @@
         Icon="/Assets/app_icon.ico"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
-        Width="440" Height="400"
+        Width="440" Height="570"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -47,9 +47,27 @@
             <TextBlock Text="أدخل المبلغ الفعلي الموجود في الخزينة (ر.ي):" FontSize="14" FontWeight="SemiBold"
                        Foreground="#555" FontFamily="{StaticResource AppFont}" Margin="5,0,0,6"/>
             <TextBox x:Name="ActualCashBox" Style="{StaticResource RoundedTextBox}"
-                     FontSize="22" FlowDirection="LeftToRight" Margin="0,0,0,25" Height="50"
+                     FontSize="22" FlowDirection="LeftToRight" Margin="0,0,0,15" Height="50"
                      Foreground="#333333"
                      TextAlignment="Center" KeyDown="ActualCashBox_KeyDown"/>
+
+            <!-- Deposit Field -->
+            <TextBlock Text="المبلغ المودع (الذي يُسلَّم للإدارة/البنك) (ر.ي):" FontSize="14" FontWeight="SemiBold"
+                       Foreground="#555" FontFamily="{StaticResource AppFont}" Margin="5,0,0,6"/>
+            <TextBox x:Name="DepositBox" Style="{StaticResource RoundedTextBox}"
+                     FontSize="22" FlowDirection="LeftToRight" Margin="0,0,0,15" Height="50"
+                     Foreground="#333333"
+                     TextAlignment="Center" KeyDown="ActualCashBox_KeyDown" TextChanged="DepositBox_TextChanged"/>
+
+            <!-- Petty Cash Summary -->
+            <Border Background="#FFF8E1" CornerRadius="10" Padding="15" Margin="0,0,0,20">
+                <DockPanel>
+                    <TextBlock Text="نثريات المحل (المتبقي بالخزينة):" FontSize="14" FontWeight="SemiBold"
+                               Foreground="{StaticResource PrimaryBrownBrush}"/>
+                    <TextBlock x:Name="PettyCashText" FontSize="18" FontWeight="Bold"
+                               Foreground="{StaticResource AccentCopperBrush}" HorizontalAlignment="Left"/>
+                </DockPanel>
+            </Border>
 
             <!-- Buttons -->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">

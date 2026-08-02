@@ -287,6 +287,13 @@ public class POSViewModel : BaseViewModel
     {
         if (!IsDiscountEnabled) return;
 
+        if (!HasPermission("pos_discount"))
+        {
+            CustomMessageBox.Show("لا تملك صلاحية تطبيق الخصم", "غير مسموح",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
         if (!IsDiscountApplied)
         {
             var result = CustomMessageBox.Show(
@@ -306,6 +313,13 @@ public class POSViewModel : BaseViewModel
 
     private void CompleteOrder()
     {
+        if (!HasPermission("pos_checkout"))
+        {
+            CustomMessageBox.Show("لا تملك صلاحية إتمام عملية البيع", "غير مسموح",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
         if (!HasItems)
         {
             CustomMessageBox.Show("لا توجد أصناف في الفاتورة", "تنبيه",
@@ -372,6 +386,13 @@ public class POSViewModel : BaseViewModel
 
     private void ClearCart()
     {
+        if (!HasPermission("pos_cancel"))
+        {
+            CustomMessageBox.Show("لا تملك صلاحية إلغاء السلة", "غير مسموح",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
         if (!HasItems) return;
 
         var result = CustomMessageBox.Show("هل تريد إلغاء جميع الأصناف من الفاتورة؟", "تأكيد الإلغاء",
@@ -396,4 +417,7 @@ public class POSViewModel : BaseViewModel
         OnPropertyChanged(nameof(Total));
         OnPropertyChanged(nameof(HasItems));
     }
+
+    private static bool HasPermission(string key)
+        => AuthService.CurrentUser?.HasPermission(key) ?? false;
 }

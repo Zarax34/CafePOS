@@ -29,7 +29,7 @@ public static class ShiftService
         };
     }
 
-    public static Shift? CloseShift(int shiftId, decimal actualCash)
+    public static Shift? CloseShift(int shiftId, decimal actualCash, decimal depositAmount = 0)
     {
         using var connection = DatabaseContext.GetConnection();
         connection.Open();
@@ -93,19 +93,23 @@ public static class ShiftService
 
         expectedCash -= totalReturns + totalExpenses;
         var difference = actualCash - expectedCash;
+        var pettyCash = expectedCash - depositAmount;
 
         // Update shift
         using (var cmd = connection.CreateCommand())
         {
             cmd.CommandText = @"
                 UPDATE shifts SET EndTime = @end, ExpectedCash = @expected,
-                    ActualCash = @actual, Difference = @diff, Status = 'closed'
+                    ActualCash = @actual, Difference = @diff, DepositAmount = @deposit,
+                    PettyCashAmount = @petty, Status = 'closed'
                 WHERE Id = @id;
             ";
             cmd.Parameters.AddWithValue("@end", endTime.ToString("yyyy-MM-dd HH:mm:ss"));
             cmd.Parameters.AddWithValue("@expected", (double)expectedCash);
             cmd.Parameters.AddWithValue("@actual", (double)actualCash);
             cmd.Parameters.AddWithValue("@diff", (double)difference);
+            cmd.Parameters.AddWithValue("@deposit", (double)depositAmount);
+            cmd.Parameters.AddWithValue("@petty", (double)pettyCash);
             cmd.Parameters.AddWithValue("@id", shiftId);
             cmd.ExecuteNonQuery();
         }
@@ -114,6 +118,8 @@ public static class ShiftService
         shift.ExpectedCash = expectedCash;
         shift.ActualCash = actualCash;
         shift.Difference = difference;
+        shift.DepositAmount = depositAmount;
+        shift.PettyCashAmount = pettyCash;
         shift.Status = "closed";
 
         return shift;

@@ -37,32 +37,25 @@ public partial class MainWindow : Window
         else
             RoleBadge.Text = "كاشير";
 
-        // Role-based visibility
-        if (_currentUser.IsCashier)
-        {
-            // Cashier: فقط نقطة البيع والمرتجعات والفواتير والمصروفات
-            BtnPurchases.Visibility = Visibility.Collapsed;
-            BtnReports.Visibility = Visibility.Collapsed;
-            BtnProducts.Visibility = Visibility.Collapsed;
-            BtnSettings.Visibility = Visibility.Collapsed;
-            BtnWorkers.Visibility = Visibility.Collapsed;
-            BtnWorkerWithdrawals.Visibility = Visibility.Collapsed;
+        // Permission-based visibility (falls back to role defaults when no
+        // explicit permissions are configured for the user)
+        BtnPOS.Visibility = _currentUser.HasPermission("pos_access") ? Visibility.Visible : Visibility.Collapsed;
+        BtnReturns.Visibility = _currentUser.HasPermission("returns_manage") ? Visibility.Visible : Visibility.Collapsed;
+        BtnInvoices.Visibility = _currentUser.HasPermission("invoices_view") ? Visibility.Visible : Visibility.Collapsed;
+        BtnPurchases.Visibility = _currentUser.HasPermission("purchases_view") ? Visibility.Visible : Visibility.Collapsed;
+        BtnExpenses.Visibility = _currentUser.HasPermission("expenses_view") ? Visibility.Visible : Visibility.Collapsed;
+        BtnReports.Visibility = _currentUser.HasPermission("reports_view") ? Visibility.Visible : Visibility.Collapsed;
+        BtnProducts.Visibility = _currentUser.HasPermission("products_view") ? Visibility.Visible : Visibility.Collapsed;
+        BtnWorkers.Visibility = _currentUser.HasPermission("workers_view") ? Visibility.Visible : Visibility.Collapsed;
+        BtnWorkerWithdrawals.Visibility = _currentUser.HasPermission("workers_withdrawals") ? Visibility.Visible : Visibility.Collapsed;
+        BtnSettings.Visibility = _currentUser.HasPermission("settings_access") ? Visibility.Visible : Visibility.Collapsed;
+        ShiftClose.Visibility = _currentUser.HasPermission("shift_close") ? Visibility.Visible : Visibility.Collapsed;
 
-            // Hide returns button if returns are disabled by admin
-            if (!SettingsService.IsReturnsEnabled())
-            {
-                BtnReturns.Visibility = Visibility.Collapsed;
-            }
-        }
-        else if (_currentUser.IsStoreManager)
+        // Hide returns button if returns are disabled by admin
+        if (_currentUser.IsCashier && !SettingsService.IsReturnsEnabled())
         {
-            // Store manager: يرى كل شيء عدا نقطة البيع والمرتجعات والإعدادات
-            BtnPOS.Visibility = Visibility.Collapsed;
             BtnReturns.Visibility = Visibility.Collapsed;
-            BtnSettings.Visibility = Visibility.Collapsed;
-            ShiftClose.Visibility = Visibility.Collapsed;
         }
-        // Full manager (admin): يرى كل الأزرار
 
         // Open shift automatically on startup if none exists (not needed for store managers)
         if (!_currentUser.IsStoreManager)
@@ -129,7 +122,7 @@ public partial class MainWindow : Window
         switch (page)
         {
             case "POS":
-                if (!_currentUser.IsStoreManager)
+                if (_currentUser.HasPermission("pos_access"))
                 {
                     _posView ??= new POSView();
                     _posView.Refresh();
@@ -138,7 +131,7 @@ public partial class MainWindow : Window
                 break;
 
             case "Returns":
-                if (!_currentUser.IsStoreManager)
+                if (_currentUser.HasPermission("returns_manage"))
                 {
                     if (_currentUser.IsCashier && !SettingsService.IsReturnsEnabled())
                     {
@@ -151,11 +144,12 @@ public partial class MainWindow : Window
                 break;
 
             case "Invoices":
-                ContentArea.Content = new InvoicesView();
+                if (_currentUser.HasPermission("invoices_view"))
+                    ContentArea.Content = new InvoicesView();
                 break;
 
             case "Purchases":
-                if (_currentUser.IsManager || _currentUser.IsStoreManager)
+                if (_currentUser.HasPermission("purchases_view"))
                 {
                     var purchasesView = new PurchasesView();
                     purchasesView.Refresh();
@@ -164,39 +158,42 @@ public partial class MainWindow : Window
                 break;
 
             case "Expenses":
-                try
+                if (_currentUser.HasPermission("expenses_view"))
                 {
-                    ContentArea.Content = new ExpensesView();
-                }
-                catch (Exception ex)
-                {
-                    CustomMessageBox.Show($"خطأ في فتح شاشة المصروفات:\n{ex.GetType().Name}: {ex.Message}\n\n{ex.StackTrace}", "خطأ",
-                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    try
+                    {
+                        ContentArea.Content = new ExpensesView();
+                    }
+                    catch (Exception ex)
+                    {
+                        CustomMessageBox.Show($"خطأ في فتح شاشة المصروفات:\n{ex.GetType().Name}: {ex.Message}\n\n{ex.StackTrace}", "خطأ",
+                            MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
                 }
                 break;
 
             case "Workers":
-                if (_currentUser.IsManager || _currentUser.IsStoreManager)
+                if (_currentUser.HasPermission("workers_view"))
                     ContentArea.Content = new WorkersView();
                 break;
 
             case "WorkerWithdrawals":
-                if (_currentUser.IsManager || _currentUser.IsStoreManager)
+                if (_currentUser.HasPermission("workers_withdrawals"))
                     ContentArea.Content = new WorkerWithdrawalsView();
                 break;
 
             case "Reports":
-                if (_currentUser.IsManager || _currentUser.IsStoreManager)
+                if (_currentUser.HasPermission("reports_view"))
                     ContentArea.Content = new ReportsView();
                 break;
 
             case "Products":
-                if (_currentUser.IsManager || _currentUser.IsStoreManager)
+                if (_currentUser.HasPermission("products_view"))
                     ContentArea.Content = new ProductsView();
                 break;
 
             case "Settings":
-                if (_currentUser.IsManager)
+                if (_currentUser.HasPermission("settings_access"))
                     ContentArea.Content = new SettingsView();
                 break;
         }

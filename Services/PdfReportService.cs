@@ -56,6 +56,8 @@ public static class PdfReportService
         sectionY = AddMetricRow(gfx, "إجمالي المرتجعات", $"−{report.TotalReturns:F2} ر.ي", sectionY, XColor.FromArgb(255, 198, 40, 40));
         sectionY = AddMetricRow(gfx, "إجمالي المشتريات", $"−{report.TotalPurchases:F2} ر.ي", sectionY, XColor.FromArgb(255, 21, 101, 192));
         sectionY = AddMetricRow(gfx, "إجمالي المصروفات", $"−{report.TotalExpenses:F2} ر.ي", sectionY, XColor.FromArgb(255, 245, 127, 23));
+        sectionY = AddMetricRow(gfx, "إجمالي المودع (البنك/الإدارة)", $"{report.TotalDeposit:F2} ر.ي", sectionY, XColor.FromArgb(255, 21, 101, 192));
+        sectionY = AddMetricRow(gfx, "نثريات المحل", $"{report.TotalPettyCash:F2} ر.ي", sectionY, XColor.FromArgb(255, 46, 125, 50));
 
         // Highlighted summary
         DrawSeparator(gfx, ref y);

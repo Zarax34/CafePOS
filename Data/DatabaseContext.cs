@@ -56,6 +56,9 @@ public static class DatabaseContext
         AddColumnIfMissing(connection, "expenses", "ExpenseType", "TEXT NOT NULL DEFAULT 'سداد'");
         AddColumnIfMissing(connection, "expenses", "WorkerId", "INTEGER");
         AddColumnIfMissing(connection, "orders", "PaymentMethod", "TEXT");
+        AddColumnIfMissing(connection, "shifts", "DepositAmount", "REAL NOT NULL DEFAULT 0");
+        AddColumnIfMissing(connection, "shifts", "PettyCashAmount", "REAL NOT NULL DEFAULT 0");
+        AddColumnIfMissing(connection, "users", "PermissionsJson", "TEXT NOT NULL DEFAULT '{}'");
 
         // Retroactively mark products that exist in purchase_items but NOT in order_items as IsPurchaseOnly = 1
         try
@@ -176,6 +179,8 @@ public static class DatabaseContext
                 ExpectedCash REAL NOT NULL DEFAULT 0,
                 ActualCash REAL NOT NULL DEFAULT 0,
                 Difference REAL NOT NULL DEFAULT 0,
+                DepositAmount REAL NOT NULL DEFAULT 0,
+                PettyCashAmount REAL NOT NULL DEFAULT 0,
                 Status TEXT NOT NULL DEFAULT 'open',
                 FOREIGN KEY(CashierId) REFERENCES users(Id)
             );
@@ -228,6 +233,21 @@ public static class DatabaseContext
                 CreatedAt TEXT NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS permissions (
+                Key TEXT PRIMARY KEY,
+                NameArabic TEXT NOT NULL,
+                Category TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS user_permissions (
+                UserId INTEGER NOT NULL,
+                PermissionKey TEXT NOT NULL,
+                IsAllowed INTEGER NOT NULL DEFAULT 1,
+                PRIMARY KEY (UserId, PermissionKey),
+                FOREIGN KEY(UserId) REFERENCES users(Id),
+                FOREIGN KEY(PermissionKey) REFERENCES permissions(Key)
+            );
+
             CREATE TABLE IF NOT EXISTS expenses (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 InvoiceNumber TEXT,
@@ -271,6 +291,79 @@ public static class DatabaseContext
                 insertCmd.Parameters.AddWithValue("@createdAt", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
                 insertCmd.Parameters.AddWithValue("@fullName", "المدير العام");
                 insertCmd.ExecuteNonQuery();
+            }
+        }
+
+        // Seed default permissions if permissions table is empty
+        using (var checkPermCmd = connection.CreateCommand())
+        {
+            checkPermCmd.CommandText = "SELECT COUNT(*) FROM permissions;";
+            var permCount = Convert.ToInt64(checkPermCmd.ExecuteScalar());
+
+            if (permCount == 0)
+            {
+                var defaultPermissions = new[]
+                {
+                    // نقطة البيع
+                    ("pos_access", "الوصول إلى نقطة البيع", "نقطة البيع"),
+                    ("pos_checkout", "إتمام عملية البيع", "نقطة البيع"),
+                    ("pos_discount", "تطبيق الخصم", "نقطة البيع"),
+                    ("pos_cancel", "إلغاء السلة", "نقطة البيع"),
+                    // الفواتير
+                    ("invoices_view", "عرض الفواتير", "الفواتير"),
+                    ("invoices_search", "البحث في الفواتير", "الفواتير"),
+                    ("invoices_print", "طباعة الفواتير", "الفواتير"),
+                    // المنتجات
+                    ("products_view", "عرض المنتجات", "المنتجات"),
+                    ("products_add", "إضافة منتج", "المنتجات"),
+                    ("products_edit", "تعديل منتج", "المنتجات"),
+                    ("products_delete", "حذف منتج", "المنتجات"),
+                    ("categories_manage", "إدارة الفئات", "المنتجات"),
+                    // المشتريات
+                    ("purchases_view", "عرض المشتريات", "المشتريات"),
+                    ("purchases_add", "إضافة مشتريات", "المشتريات"),
+                    ("purchases_edit", "تعديل مشتريات", "المشتريات"),
+                    ("purchases_delete", "حذف مشتريات", "المشتريات"),
+                    // المصروفات
+                    ("expenses_view", "عرض المصروفات", "المصروفات"),
+                    ("expenses_add", "إضافة مصروف", "المصروفات"),
+                    ("expenses_edit", "تعديل مصروف", "المصروفات"),
+                    ("expenses_delete", "حذف مصروف", "المصروفات"),
+                    // العمال
+                    ("workers_view", "عرض العمال", "العمال"),
+                    ("workers_add", "إضافة عامل", "العمال"),
+                    ("workers_edit", "تعديل عامل", "العمال"),
+                    ("workers_delete", "حذف عامل", "العمال"),
+                    ("workers_withdrawals", "إدارة سحوبات العمال", "العمال"),
+                    // الطلبات والمرتجعات
+                    ("orders_void", "إلغاء فاتورة", "الطلبات والمرتجعات"),
+                    ("returns_manage", "إدارة المرتجعات", "الطلبات والمرتجعات"),
+                    // التقارير
+                    ("reports_view", "عرض التقارير", "التقارير"),
+                    ("reports_export_excel", "تصدير Excel", "التقارير"),
+                    ("reports_export_pdf", "تصدير PDF", "التقارير"),
+                    ("shift_close", "إغلاق الشفت", "التقارير"),
+                    // الإعدادات
+                    ("settings_access", "الوصول إلى الإعدادات", "الإعدادات"),
+                    ("users_manage", "إدارة المستخدمين والصلاحيات", "الإعدادات"),
+                    ("license_manage", "إدارة الترخيص", "الإعدادات"),
+                    ("backup_manage", "النسخ الاحتياطي", "الإعدادات"),
+                    // إدارية
+                    ("full_access", "وصول كامل (مدير النظام)", "إدارية"),
+                };
+
+                foreach (var (key, nameArabic, category) in defaultPermissions)
+                {
+                    using var insertCmd = connection.CreateCommand();
+                    insertCmd.CommandText = @"
+                        INSERT OR IGNORE INTO permissions (Key, NameArabic, Category)
+                        VALUES (@key, @name, @category);
+                    ";
+                    insertCmd.Parameters.AddWithValue("@key", key);
+                    insertCmd.Parameters.AddWithValue("@name", nameArabic);
+                    insertCmd.Parameters.AddWithValue("@category", category);
+                    insertCmd.ExecuteNonQuery();
+                }
             }
         }
 

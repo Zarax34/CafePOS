@@ -216,6 +216,18 @@ public partial class SettingsView : UserControl
         }
     }
 
+    private void PermissionsUser_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement element || element.Tag is not User user) return;
+
+        var permissionsWin = new PermissionsWindow(user);
+        permissionsWin.Owner = Window.GetWindow(this);
+        if (permissionsWin.ShowDialog() == true)
+        {
+            LoadUsers();
+        }
+    }
+
     private void ToggleUserActive_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not FrameworkElement element || element.Tag is not User user) return;

@@ -140,6 +140,13 @@ public partial class ExpensesView : UserControl
     {
         var expense = (Expense)((Button)sender).DataContext;
 
+        if (expense.CreatedAt.AddMinutes(15) < DateTime.Now)
+        {
+            CustomMessageBox.Show("لا يمكن حذف المصروف بعد مرور أكثر من 15 دقيقة على إضافته",
+                "غير مسموح", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
         var result = CustomMessageBox.Show($"هل أنت متأكد من حذف المصروف:\n{expense.Description} - {expense.Amount:F2} ر.ي؟",
             "تأكيد الحذف", MessageBoxButton.YesNo, MessageBoxImage.Question);
 

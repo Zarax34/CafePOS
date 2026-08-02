@@ -148,6 +148,8 @@ public partial class ReportsView : UserControl
             AddExcelMetricRow(ws, ref row, "إجمالي المصروفات", report.TotalExpenses);
             AddExcelMetricRow(ws, ref row, "صافي التحصيل", report.NetCash, isHighlight: true);
             AddExcelMetricRow(ws, ref row, "صافي الربح", report.NetProfit, isHighlight: true, highlightColor: XLColor.FromArgb(0x2E7D32));
+            AddExcelMetricRow(ws, ref row, "إجمالي المودع (البنك/الإدارة)", report.TotalDeposit);
+            AddExcelMetricRow(ws, ref row, "نثريات المحل", report.TotalPettyCash);
             ws.Cell(row, 1).Value = "عدد الفواتير";
             ws.Cell(row, 2).Value = report.OrderCount;
             row += 2;
@@ -269,7 +271,7 @@ public partial class ReportsView : UserControl
             ws.Cell("A1").Value = $"التقرير السنوي ({year})";
             ws.Cell("A1").Style.Font.Bold = true;
             ws.Cell("A1").Style.Font.FontSize = 16;
-            ws.Range("A1:G1").Merge();
+            ws.Range("A1:I1").Merge();
 
             // Header row
             ws.Cell("A3").Value = "الشهر";
@@ -279,14 +281,16 @@ public partial class ReportsView : UserControl
             ws.Cell("E3").Value = "المرتجعات";
             ws.Cell("F3").Value = "المشتريات";
             ws.Cell("G3").Value = "صافي التحصيل";
+            ws.Cell("H3").Value = "المودع";
+            ws.Cell("I3").Value = "النثريات";
 
-            var headerRange = ws.Range("A3:G3");
+            var headerRange = ws.Range("A3:I3");
             headerRange.Style.Font.Bold = true;
             headerRange.Style.Fill.BackgroundColor = XLColor.FromArgb(0x8D6E63);
             headerRange.Style.Font.FontColor = XLColor.White;
             headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
-            decimal grandRevenue = 0, grandDiscounts = 0, grandReturns = 0, grandNet = 0;
+            decimal grandRevenue = 0, grandDiscounts = 0, grandReturns = 0, grandNet = 0, grandDeposit = 0, grandPetty = 0;
             int grandOrders = 0;
             int row = 4;
 
@@ -314,11 +318,17 @@ public partial class ReportsView : UserControl
                 ws.Cell(row, 5).Style.NumberFormat.NumberFormatId = 4;
                 ws.Cell(row, 6).Value = (double)item.NetCash;
                 ws.Cell(row, 6).Style.NumberFormat.NumberFormatId = 4;
+                ws.Cell(row, 7).Value = (double)item.Deposit;
+                ws.Cell(row, 7).Style.NumberFormat.NumberFormatId = 4;
+                ws.Cell(row, 8).Value = (double)item.PettyCash;
+                ws.Cell(row, 8).Style.NumberFormat.NumberFormatId = 4;
 
                 grandRevenue += item.TotalRevenue;
                 grandDiscounts += item.TotalDiscounts;
                 grandReturns += item.TotalReturns;
                 grandNet += item.NetCash;
+                grandDeposit += item.Deposit;
+                grandPetty += item.PettyCash;
                 grandOrders += item.OrderCount;
                 row++;
             }
@@ -341,8 +351,14 @@ public partial class ReportsView : UserControl
             ws.Cell(totalRow, 6).Value = (double)grandNet;
             ws.Cell(totalRow, 6).Style.Font.Bold = true;
             ws.Cell(totalRow, 6).Style.NumberFormat.NumberFormatId = 4;
+            ws.Cell(totalRow, 7).Value = (double)grandDeposit;
+            ws.Cell(totalRow, 7).Style.Font.Bold = true;
+            ws.Cell(totalRow, 7).Style.NumberFormat.NumberFormatId = 4;
+            ws.Cell(totalRow, 8).Value = (double)grandPetty;
+            ws.Cell(totalRow, 8).Style.Font.Bold = true;
+            ws.Cell(totalRow, 8).Style.NumberFormat.NumberFormatId = 4;
 
-            var totalRange = ws.Range(totalRow, 1, totalRow, 6);
+            var totalRange = ws.Range(totalRow, 1, totalRow, 8);
             totalRange.Style.Fill.BackgroundColor = XLColor.FromArgb(0xE8F5E9);
 
             // Column widths
@@ -352,6 +368,8 @@ public partial class ReportsView : UserControl
             ws.Column(4).Width = 16;
             ws.Column(5).Width = 16;
             ws.Column(6).Width = 20;
+            ws.Column(7).Width = 18;
+            ws.Column(8).Width = 18;
 
             workbook.SaveAs(saveDialog.FileName);
 
@@ -463,6 +481,7 @@ public partial class ReportsView : UserControl
         ShiftClosePanel.Visibility = Visibility.Visible;
         ShiftResultPanel.Visibility = Visibility.Collapsed;
         ActualCashBox.Text = string.Empty;
+        DepositBox.Text = string.Empty;
     }
 
     private void ActualCashBox_KeyDown(object sender, KeyEventArgs e)
@@ -482,6 +501,24 @@ public partial class ReportsView : UserControl
             return;
         }
 
+        decimal deposit = 0;
+        if (!string.IsNullOrWhiteSpace(DepositBox.Text.Trim()))
+        {
+            if (!decimal.TryParse(DepositBox.Text.Trim(), out deposit) || deposit < 0)
+            {
+                CustomMessageBox.Show("الرجاء إدخال مبلغ إيداع صحيح", "تنبيه",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+        }
+
+        if (deposit > actualCash)
+        {
+            CustomMessageBox.Show("المبلغ المودع لا يمكن أن يتجاوز المبلغ الفعلي في الخزينة", "تنبيه",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
         var cashierId = AuthService.CurrentUser?.Id ?? 0;
 
         // Open a shift if none exists, then close it
@@ -491,7 +528,7 @@ public partial class ReportsView : UserControl
             currentShift = ShiftService.OpenShift(cashierId);
         }
 
-        var closedShift = ShiftService.CloseShift(currentShift.Id, actualCash);
+        var closedShift = ShiftService.CloseShift(currentShift.Id, actualCash, deposit);
         if (closedShift == null)
         {
             CustomMessageBox.Show("حدث خطأ أثناء إغلاق الشفت", "خطأ",
@@ -502,6 +539,8 @@ public partial class ReportsView : UserControl
         // Display results
         ShiftExpectedText.Text = $"المبلغ المتوقع: {closedShift.ExpectedCash:F2} ر.ي";
         ShiftActualText.Text = $"المبلغ الفعلي: {closedShift.ActualCash:F2} ر.ي";
+        ShiftDepositText.Text = $"المبلغ المودع: {closedShift.DepositAmount:F2} ر.ي";
+        ShiftPettyText.Text = $"نثريات المحل (المتبقي بالخزينة): {closedShift.PettyCashAmount:F2} ر.ي";
 
         var diff = closedShift.Difference;
         if (diff == 0)

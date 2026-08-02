@@ -1,3 +1,4 @@
+using System.Text.Json;
 using CafePOS.Data;
 using CafePOS.Models;
 using Microsoft.Data.Sqlite;
@@ -18,7 +19,7 @@ public static class AuthService
 
         using var cmd = connection.CreateCommand();
         cmd.CommandText = @"
-            SELECT Id, Username, PasswordHash, Role, IsActive, CreatedAt, FullName
+            SELECT Id, Username, PasswordHash, Role, IsActive, CreatedAt, FullName, PermissionsJson
             FROM users
             WHERE Username = @username AND IsActive = 1;
         ";
@@ -41,7 +42,8 @@ public static class AuthService
             Role = reader.GetString(3),
             IsActive = reader.GetInt32(4) == 1,
             CreatedAt = DateTime.Parse(reader.GetString(5)),
-            FullName = reader.IsDBNull(6) ? "" : reader.GetString(6)
+            FullName = reader.IsDBNull(6) ? "" : reader.GetString(6),
+            PermissionsJson = reader.IsDBNull(7) ? "{}" : reader.GetString(7)
         };
 
         CurrentUser = user;
@@ -230,5 +232,72 @@ public static class AuthService
     public static void Logout()
     {
         CurrentUser = null;
+    }
+
+    /// <summary>
+    /// Gets all defined permissions (for the permissions editor UI).
+    /// </summary>
+    public static List<Permission> GetAllPermissions()
+    {
+        var permissions = new List<Permission>();
+        using var connection = DatabaseContext.GetConnection();
+        connection.Open();
+
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = "SELECT Key, NameArabic, Category FROM permissions ORDER BY Category, Key;";
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            permissions.Add(new Permission
+            {
+                Key = reader.GetString(0),
+                NameArabic = reader.GetString(1),
+                Category = reader.GetString(2)
+            });
+        }
+
+        return permissions;
+    }
+
+    /// <summary>
+    /// Gets the explicit permission dictionary of a user (empty if none configured).
+    /// </summary>
+    public static Dictionary<string, bool> GetPermissions(int userId)
+    {
+        using var connection = DatabaseContext.GetConnection();
+        connection.Open();
+
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = "SELECT PermissionsJson FROM users WHERE Id = @id;";
+        cmd.Parameters.AddWithValue("@id", userId);
+
+        var raw = cmd.ExecuteScalar() as string;
+        if (string.IsNullOrWhiteSpace(raw)) return new();
+
+        try
+        {
+            return JsonSerializer.Deserialize<Dictionary<string, bool>>(raw) ?? new();
+        }
+        catch
+        {
+            return new();
+        }
+    }
+
+    /// <summary>
+    /// Saves the explicit permission dictionary of a user.
+    /// </summary>
+    public static bool SavePermissions(int userId, Dictionary<string, bool> permissions)
+    {
+        using var connection = DatabaseContext.GetConnection();
+        connection.Open();
+
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = "UPDATE users SET PermissionsJson = @json WHERE Id = @id;";
+        cmd.Parameters.AddWithValue("@json", JsonSerializer.Serialize(permissions));
+        cmd.Parameters.AddWithValue("@id", userId);
+
+        return cmd.ExecuteNonQuery() > 0;
     }
 }
