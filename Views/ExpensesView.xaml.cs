@@ -91,9 +91,7 @@ public partial class ExpensesView : UserControl
         var currentShift = ShiftService.GetCurrentShift(user.Id);
         if (currentShift == null)
         {
-            CustomMessageBox.Show("لا يوجد شفت مفتوح. الرجاء فتح شفت أولاً.", "خطأ",
-                MessageBoxButton.OK, MessageBoxImage.Error);
-            return;
+            currentShift = ShiftService.OpenShift(user.Id);
         }
 
         int? workerId = null;
